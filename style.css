@@ -1,0 +1,403 @@
+/* ==================== */
+/* Variáveis & Reset    */
+/* ==================== */
+:root {
+    --primary-color: #1e88e5;
+    --primary-hover: #1565c0;
+    --secondary-color: #43a047;
+    --secondary-hover: #2e7d32;
+    --danger-color: #e53935;
+    --danger-hover: #c62828;
+    --bg-color-main: #121212;
+    --bg-color-container: #1e1e1e;
+    --bg-color-input: #2a2a2a;
+    --text-color-light: #cfd8dc;
+    --text-color-dark: #fff;
+    --accent-color: #ffd700;
+    --border-color: #333;
+    --shadow: rgba(0, 0, 0, 0.5);
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color-main);
+    color: var(--text-color-dark);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    transition: background 0.5s ease;
+}
+
+/* ========================= */
+/* Feedback de Carregamento  */
+/* ========================= */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: none; /* Inicia oculto */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.spinner {
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top: 4px solid var(--accent-color);
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+
+/* ==================== */
+/* Container Principal  */
+/* ==================== */
+.container {
+    max-width: 900px;
+    width: 100%;
+    background: var(--bg-color-container);
+    padding: 2.5rem;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px var(--shadow);
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.container.already-played {
+    border: 2px solid rgba(229, 83, 83, 0.25);
+}
+
+/* Mensagem grande de já jogou */
+.already-played-msg {
+    margin: 20px auto;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: #3a1f1f;
+    color: #FF6B6B;
+    font-weight: 600;
+    border: 1px solid var(--danger-color);
+    display: none;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.already-played-msg.is-visible {
+    opacity: 1;
+    display: block;
+}
+
+/* Animação para seções */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.content-section {
+    display: none;
+    animation: fadeIn 0.5s ease-out forwards;
+}
+.content-section.is-visible {
+    display: block;
+}
+
+/* Título e descrição nas telas de Login/Registro */
+.game-intro {
+    margin-bottom: 2rem;
+}
+.game-intro .main-title {
+    margin: 0;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    letter-spacing: 2px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+.game-intro p {
+    margin-top: 0.5rem;
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--text-color-light);
+    font-style: italic;
+}
+
+/* ==================== */
+/* Inputs & Forms       */
+/* ==================== */
+input {
+    width: 90%;
+    padding: 14px;
+    margin: 12px 0;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    font-size: 16px;
+    background: var(--bg-color-input);
+    color: var(--text-color-dark);
+    outline: none;
+    transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+input:focus {
+    border: 1px solid var(--primary-color);
+    box-shadow: 0 0 8px rgba(30, 136, 229, 0.5);
+}
+
+/* ==================== */
+/* Botões               */
+/* ==================== */
+.btn {
+    width: 95%;
+    padding: 14px;
+    background-color: var(--primary-color);
+    color: var(--text-color-dark);
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 15px rgba(30, 136, 229, 0.2);
+}
+.btn:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(30, 136, 229, 0.3);
+}
+.btn-secondary {
+    background-color: var(--secondary-color);
+    box-shadow: 0 4px 15px rgba(67, 160, 71, 0.2);
+}
+.btn-secondary:hover {
+    background-color: var(--secondary-hover);
+    box-shadow: 0 6px 20px rgba(67, 160, 71, 0.3);
+}
+.btn-danger {
+    background-color: var(--danger-color);
+    box-shadow: 0 4px 15px rgba(229, 57, 53, 0.2);
+}
+.btn-danger:hover {
+    background-color: var(--danger-hover);
+    box-shadow: 0 6px 20px rgba(229, 57, 53, 0.3);
+}
+
+a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+a:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
+}
+
+/* ==================== */
+/* Instruções do jogo   */
+/* ==================== */
+.game-instructions {
+    background: #242424;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 25px auto;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--text-color-light);
+    text-align: center;
+    max-width: 700px;
+}
+.game-instructions strong { color: var(--accent-color); font-weight: 700;}
+.game-instructions em { color: var(--primary-color); }
+
+/* ==================== */
+/* Tema do desafio      */
+/* ==================== */
+.theme-text {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: var(--accent-color);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+
+/* ==================== */
+/* Palavras do desafio  */
+/* ==================== */
+.challenge-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+}
+.challenge-word {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #242424;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px var(--shadow);
+    flex: 1 1 300px;
+}
+.challenge-word p {
+    font-size: 1.8rem;
+    letter-spacing: 0.2rem;
+    margin-bottom: 0.8rem;
+    color: var(--primary-color);
+    font-weight: 700;
+    overflow-wrap: break-word; /* Prevents overflow on long words */
+    word-break: break-all;
+}
+
+/* Contêiner de inputs de letra */
+.input-container {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap; /* Added to handle long words */
+}
+
+.letter-input {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-color-input);
+    color: var(--text-color-dark);
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.letter-input:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+}
+
+.letter-input.animate-feedback {
+    animation: feedback 0.6s ease-in-out forwards;
+}
+
+@keyframes feedback {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+
+.letter-input.correct {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    color: white;
+}
+.letter-input.wrong {
+    background-color: var(--danger-color);
+    border-color: var(--danger-color);
+    color: white;
+}
+
+
+/* ==================== */
+/* Feedback visual      */
+/* ==================== */
+.correct { color: var(--secondary-color); font-weight: 700; }
+.wrong { color: var(--danger-color); font-weight: 700; }
+
+.result-message {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    min-height: 24px;
+    color: var(--accent-color);
+}
+
+.result-message.win {
+    color: var(--secondary-color);
+}
+
+/* ==================== */
+/* Rankings lado a lado */
+/* ==================== */
+.ranking-flex {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 30px;
+    display: none;
+}
+
+.ranking-block {
+    flex: 1 1 45%;
+    min-width: 300px; /* Garante que não ficam muito estreitos */
+}
+.ranking-block h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-color);
+    margin-bottom: 15px;
+}
+
+.ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #2a2a2a;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px var(--shadow);
+}
+
+.ranking-table th, .ranking-table td {
+    padding: 12px;
+    border-bottom: 1px solid #444;
+    text-align: left;
+}
+.ranking-table th:first-child, .ranking-table td:first-child { text-align: center; width: 40px; }
+
+.ranking-table th {
+    background: #333;
+    font-weight: 700;
+    color: var(--accent-color);
+}
+
+.ranking-table tr:nth-child(even) { background: #242424; }
+.ranking-table tr:hover { background: #3a3a3a; }
+
+/* ==================== */
+/* Responsividade       */
+/* ==================== */
+@media (max-width: 800px) {
+    body { align-items: flex-start; }
+    .container { padding: 1.5rem; margin-top: 20px; }
+    .challenge-word { padding: 15px; }
+    .challenge-word p { font-size: 1.2rem; }
+    .btn { font-size: 14px; padding: 12px; }
+    .ranking-block { flex: 1 1 100%; }
+
+    /* Ajuste para as caixas de input para se adaptarem em telas menores */
+    .letter-input {
+        width: 35px;
+        height: 35px;
+        font-size: 1.2rem;
+    }
+}
