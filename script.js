@@ -75,8 +75,6 @@ function showDailyBlockForUser() {
 }
 
 function showWinMessage() {
-    const el = document.getElementById("alreadyPlayedMsg");
-    if (el) el.style.display = "block";
     const resultMsg = document.getElementById("result");
     resultMsg.classList.add("win");
     resultMsg.textContent = "Parabéns, você completou o desafio de hoje. Volte amanhã para solucionar mais um.";
