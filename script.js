@@ -6,7 +6,10 @@ import {
     signInWithEmailAndPassword, 
     onAuthStateChanged, 
     signOut,
-    sendPasswordResetEmail 
+    sendPasswordResetEmail,
+    // NOVO: Importe GoogleAuthProvider e signInWithPopup
+    GoogleAuthProvider, 
+    signInWithPopup
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { 
     getFirestore, 
@@ -35,6 +38,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+// NOVO: Crie uma instância do provedor Google
+const googleProvider = new GoogleAuthProvider();
 
 // Variáveis de estado
 let originalWords = [];
@@ -54,9 +59,9 @@ function showSection(id) {
     if (el) el.classList.add('is-visible');
 }
 
-function showGameUI(user) {
+function showGameUI(username) {
     showSection("game-section");
-    document.getElementById("welcome").textContent = `👋 Bem-vindo, ${user}!`;
+    document.getElementById("welcome").textContent = `👋 Bem-vindo, ${username}!`;
     document.getElementById("logout").style.display = "block";
     clearDailyBlockUI();
     loadRanking();
@@ -102,10 +107,16 @@ onAuthStateChanged(auth, async (user) => {
             const docRef = doc(db, "users", user.uid);
             const docSnap = await getDoc(docRef);
             let username = 'Usuário';
+
+            // Verifica se o usuário já existe e tem username
             if (docSnap.exists() && docSnap.data().username) {
                 username = docSnap.data().username;
+                showGameUI(username);
+            } else {
+                // Caso o usuário exista, mas não tenha username (primeiro login com Google)
+                showSection("username-section");
+                return;
             }
-            showGameUI(username);
             
             const today = new Date().toISOString().split('T')[0];
             const playedQuery = query(
@@ -219,6 +230,67 @@ document.getElementById("logout").addEventListener("click", async () => {
     catch (error) { console.error("Erro ao sair:", error); }
     finally { hideLoading(); }
 });
+
+// NOVO: Manipulador de evento de login com Google
+document.getElementById("btnGoogleLogin").addEventListener("click", async () => {
+    showLoading();
+    try {
+        const result = await signInWithPopup(auth, googleProvider);
+        const user = result.user;
+
+        // A verificação de username é feita no onAuthStateChanged
+    } catch (error) {
+        console.error("Erro no login com Google:", error);
+        let errorMessage = "Ocorreu um erro no login com Google. Tente novamente.";
+        if (error.code === 'auth/popup-closed-by-user') {
+            errorMessage = 'A janela de login foi fechada. Tente novamente.';
+        }
+        document.getElementById("loginMsg").textContent = errorMessage;
+    } finally {
+        hideLoading();
+    }
+});
+
+// NOVO: Manipulador de evento para salvar o username
+document.getElementById("btnSaveUsername").addEventListener("click", async () => {
+    const user = auth.currentUser;
+    const username = document.getElementById("username-input").value.trim();
+    const usernameMsg = document.getElementById("usernameMsg");
+    if (!username) {
+        usernameMsg.textContent = "Por favor, escolha um nome de usuário.";
+        return;
+    }
+
+    showLoading();
+    try {
+        // 1. Verifique se o username já existe no Firestore
+        const usernameQuery = query(collection(db, "users"), where("username", "==", username));
+        const usernameSnap = await getDocs(usernameQuery);
+        if (!usernameSnap.empty) {
+            usernameMsg.textContent = "Nome de usuário já existe. Escolha outro.";
+            hideLoading();
+            return;
+        }
+
+        // 2. Salve o username e os dados do usuário
+        await setDoc(doc(db, "users", user.uid), {
+            username: username,
+            email: user.email,
+            createdAt: new Date()
+        }, { merge: true }); // Use { merge: true } para não apagar dados existentes se o usuário já tiver logado com outro método
+
+        usernameMsg.textContent = "Nome de usuário salvo com sucesso!";
+        // Redirecione para a tela do jogo
+        showGameUI(username);
+
+    } catch (error) {
+        console.error("Erro ao salvar username:", error);
+        usernameMsg.textContent = "Erro ao salvar o nome de usuário. Tente novamente.";
+    } finally {
+        hideLoading();
+    }
+});
+
 
 // ==================== JOGO ====================
 function normalizeString(str) { if (!str) return ""; return str.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
