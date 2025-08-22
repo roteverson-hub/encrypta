@@ -109,6 +109,7 @@
             gap: 2rem;
             margin-top: 2rem;
             width: 100%;
+            align-items: center;
         }
         @media (min-width: 768px) {
             .ranking-flex {
@@ -124,6 +125,7 @@
             border-radius: 0.75rem;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             flex: 1;
+            min-width: 300px;
         }
         .ranking-block h2 {
             font-weight: 700;
@@ -150,7 +152,6 @@
         .ranking-table td:nth-child(1) { width: 10%; }
         .ranking-table td:nth-child(2) { width: 60%; }
         .ranking-table td:nth-child(3) { width: 30%; }
-
     </style>
 </head>
 <body>
@@ -163,6 +164,28 @@
         <div class="game-intro">
             <h1 class="main-title">ENCRYPTA</h1>
             <p>O jogo diário de palavras criptografadas</p>
+        </div>
+
+        <!-- As seções de ranking agora estão fora da seção do jogo para sempre serem visíveis -->
+        <div id="ranking-section" class="ranking-flex">
+            <div class="ranking-block">
+                <h2>🏆 Diário</h2>
+                <table id="daily-ranking" class="ranking-table">
+                    <thead>
+                        <tr><th>#</th><th>Usuário</th><th>Pontos</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="ranking-block">
+                <h2>🌍 Global</h2>
+                <table id="global-ranking" class="ranking-table">
+                    <thead>
+                        <tr><th>#</th><th>Usuário</th><th>Pontos</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
 
         <div id="login-section" class="content-section is-visible">
@@ -209,47 +232,23 @@
             <button id="submitAnswers" class="btn" style="display: none;">Enviar Respostas</button>
             <p id="result" class="result-message"></p>
             <button id="logout" class="btn btn-danger" style="display:none;">Sair</button>
-
-            <div id="ranking-section" class="ranking-flex" style="display: none;">
-                <div class="ranking-block">
-                    <h2>🏆 Diário</h2>
-                    <table id="daily-ranking" class="ranking-table">
-                        <thead>
-                            <tr><th>#</th><th>Usuário</th><th>Pontos</th></tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-                <div class="ranking-block">
-                    <h2>🌍 Global</h2>
-                    <table id="global-ranking" class="ranking-table">
-                        <thead>
-                            <tr><th>#</th><th>Usuário</th><th>Pontos</th></tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
         </div>
     </div>
     
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, orderBy, limit, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // ==========================================================
-        // CONFIGURAÇÃO DO PROJETO FIREBASE (COM SUAS CREDENCIAIS)
+        // CONFIGURAÇÃO DO PROJETO FIREBASE (COM CREDENCIAIS SEGURAS)
         // ==========================================================
-        const firebaseConfig = {
-            apiKey: "AIzaSyC8UGRrAwvAQ_PEy7STJwQWUSnE2-qWuII",
-            authDomain: "encryptame-1.firebaseapp.com",
-            projectId: "encryptame-1",
-            storageBucket: "encryptame-1.appspot.com",
-            messagingSenderId: "109950408456",
-            appId: "1:109950408456:web:65492d295240c5f106603a"
-        };
+        // As credenciais de configuração e o token de autenticação são injetados
+        // pelo ambiente de execução por motivos de segurança.
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : '';
         
         // Inicializa o Firebase e seus serviços
         const app = initializeApp(firebaseConfig);
@@ -261,7 +260,7 @@
         // ==========================================================
         let originalWords = [];
         let startTime = null;
-        let attempts = 0; // Nova variável para contar as tentativas
+        let attempts = 0; // Variável para contar as tentativas
 
         // Funções para mostrar/esconder o loading overlay
         function showLoading() {
@@ -290,7 +289,7 @@
             showSection("game-section", true);
             document.getElementById("welcome").textContent = `👋 Bem-vindo, ${user}!`;
             document.getElementById("logout").style.display = "block";
-            loadRanking();
+            // O ranking agora é carregado no onAuthStateChanged para estar sempre visível.
         }
 
         function showDailyBlockForUser() {
@@ -334,23 +333,21 @@
         // LÓGICA DE AUTENTICAÇÃO E FIRESTORE
         // ==========================================================
 
-        // Listener global para o estado de autenticação
+        // Ouve o estado de autenticação para carregar a UI correta
         onAuthStateChanged(auth, async (user) => {
             hideLoading();
             if (user) {
-                // Usuário logado
                 try {
-                    const docRef = doc(db, "users", user.uid);
-                    const docSnap = await getDoc(docRef);
-                    let username = user.email.split('@')[0];
+                    const userRef = doc(db, "users", user.uid);
+                    const docSnap = await getDoc(userRef);
+                    let username = user.email ? user.email.split('@')[0] : 'Usuário';
 
                     if (docSnap.exists()) {
                         username = docSnap.data().username || username;
                     }
-
+                    
                     showGameUI(username);
                     
-                    // Verifica se o usuário já jogou hoje
                     const today = new Date().toISOString().split('T')[0];
                     const gameRef = doc(db, "games", `${user.uid}-${today}`);
                     const gameSnap = await getDoc(gameRef);
@@ -363,18 +360,33 @@
 
                 } catch (error) {
                     console.error("Erro ao carregar dados do usuário:", error);
-                    // Usando um modal/div customizado em vez de alert()
                     const errorMessageDiv = document.createElement('div');
                     errorMessageDiv.textContent = 'Ocorreu um erro ao carregar seus dados.';
                     errorMessageDiv.style.color = 'red';
                     document.getElementById('appContainer').appendChild(errorMessageDiv);
                 }
-
             } else {
-                // Nenhum usuário logado
                 showSection("login-section", true);
             }
+            loadRanking();
         });
+        
+        // Autentica com o token fornecido ou de forma anônima
+        async function authenticateUser() {
+            showLoading();
+            try {
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Authentication error:", error);
+            } finally {
+                hideLoading();
+            }
+        }
+        authenticateUser();
 
         // Lógica para alternar entre as telas de login e registro
         document.getElementById("goRegister").addEventListener("click", (e) => {
@@ -403,21 +415,15 @@
             
             showLoading();
             try {
-                // Cria o usuário no Firebase Authentication
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
-
-                // Salva o documento do usuário no Firestore
                 await setDoc(doc(db, "users", user.uid), {
-                    username: email.split('@')[0], // Nome de usuário padrão
+                    username: email.split('@')[0],
                     email: user.email,
                     createdAt: new Date(),
-                    totalPoints: 0 // Novo campo para o ranking global
+                    totalPoints: 0
                 });
-
                 registerMsg.textContent = "Registro e login realizados com sucesso!";
-                // onAuthStateChanged irá lidar com a transição de tela.
-
             } catch (error) {
                 console.error("Erro de registro:", error);
                 let errorMessage = "Erro ao registrar. Tente novamente.";
@@ -446,18 +452,13 @@
 
             showLoading();
             try {
-                // Faz login do usuário no Firebase
                 await signInWithEmailAndPassword(auth, email, password);
                 loginMsg.textContent = "Login realizado com sucesso!";
-                // onAuthStateChanged irá lidar com a transição de tela.
-
             } catch (error) {
                 console.error("Erro de login:", error);
                 let errorMessage = "E-mail ou senha inválidos. Tente novamente.";
-                if (error.code === 'auth/user-not-found') {
-                    errorMessage = 'Nenhuma conta encontrada com este e-mail.';
-                } else if (error.code === 'auth/wrong-password') {
-                    errorMessage = 'Senha incorreta.';
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    errorMessage = 'E-mail ou senha inválidos. Tente novamente.';
                 }
                 loginMsg.textContent = errorMessage;
             } finally {
@@ -470,10 +471,8 @@
             showLoading();
             try {
                 await signOut(auth);
-                // onAuthStateChanged irá redirecionar para a tela de login.
             } catch (error) {
                 console.error("Erro ao sair:", error);
-                // Usando um modal/div customizado em vez de alert()
                 const errorMessageDiv = document.createElement('div');
                 errorMessageDiv.textContent = 'Erro ao tentar sair.';
                 errorMessageDiv.style.color = 'red';
@@ -516,16 +515,12 @@
 
         // Nova função para calcular a pontuação
         function calculatePoints(answerTime, attempts) {
-            // A pontuação base é 1000.
-            // Penalidade por tempo: 5 pontos por segundo.
-            // Penalidade por tentativas: 50 pontos por tentativa.
             const basePoints = 1000;
             const timePenalty = answerTime * 5;
-            const attemptsPenalty = (attempts - 1) * 50; // A primeira tentativa não penaliza
+            const attemptsPenalty = (attempts - 1) * 50; 
             
             let points = basePoints - timePenalty - attemptsPenalty;
             
-            // Garante que a pontuação não seja menor que 100
             if (points < 100) {
                 points = 100;
             }
@@ -536,11 +531,10 @@
         // Carregar Desafio
         document.getElementById("loadChallenge").addEventListener("click", async () => {
             const user = auth.currentUser;
-            if (!user) return; // Garante que há um usuário logado
+            if (!user) return; 
         
             showLoading();
             try {
-                // Monta o nome do documento do dia no formato YYYY-MM-DD
                 const today = new Date().toISOString().split('T')[0];
                 const challengeRef = doc(db, "desafios", today);
                 const challengeSnap = await getDoc(challengeRef);
@@ -554,9 +548,8 @@
                     ];
                     const cipher = challengeData.cipher_alpha;
                     
-                    // Criptografa as palavras para exibir
                     const cipheredWords = words.map(word => encryptWord(word, cipher));
-                    originalWords = words; // Salva as palavras originais para verificação posterior
+                    originalWords = words; 
         
                     document.getElementById("theme").textContent = `Tema: ${challengeData.theme || "Sem tema"}`;
                     const challengeDiv = document.getElementById("challenge");
@@ -606,7 +599,7 @@
                     clearDailyBlockUI();
                     document.getElementById("result").textContent = "";
                     startTime = Date.now();
-                    attempts = 0; // Reinicia a contagem de tentativas
+                    attempts = 0; 
         
                 } else {
                     document.getElementById("theme").textContent = "Nenhum desafio encontrado para hoje.";
@@ -615,7 +608,6 @@
         
             } catch (err) {
                 console.error("Erro ao carregar desafio:", err);
-                // Usando um modal/div customizado em vez de alert()
                 const errorMessageDiv = document.createElement('div');
                 errorMessageDiv.textContent = 'Erro ao carregar desafio do dia.';
                 errorMessageDiv.style.color = 'red';
@@ -632,7 +624,6 @@
 
             showLoading();
             
-            // Incrementa o número de tentativas
             attempts++;
             
             let correctCount = 0;
@@ -652,16 +643,16 @@
                 inputs.forEach(input => {
                     input.classList.remove('bg-green-200', 'bg-red-200');
                     if (isWordCorrect) {
-                        input.classList.add('bg-green-200'); // Tailwind class for correct
+                        input.classList.add('bg-green-200'); 
                     } else {
-                        input.classList.add('bg-red-200'); // Tailwind class for wrong
+                        input.classList.add('bg-red-200'); 
                     }
                 });
             });
-        
+            
             const resultMsg = document.getElementById("result");
             const isCorrect = (correctCount === originalWords.length);
-        
+            
             if (isCorrect) {
                 resultMsg.textContent = "🎉 Parabéns! Você acertou todas!";
                 resultMsg.style.color = "#10b981";
@@ -670,7 +661,6 @@
                 const points = calculatePoints(answerTime, attempts);
 
                 try {
-                    // Pega o username do documento do usuário
                     const userDocRef = doc(db, "users", user.uid);
                     const userSnap = await getDoc(userDocRef);
                     let username = user.email.split('@')[0];
@@ -680,7 +670,6 @@
                         totalPoints = userSnap.data().totalPoints || 0;
                     }
                     
-                    // Salva a pontuação na coleção "ranking" para o ranking diário
                     await addDoc(collection(db, "ranking"), {
                         userId: user.uid,
                         username: username,
@@ -691,12 +680,11 @@
                         timestamp: new Date()
                     });
 
-                    // Atualiza a pontuação total na coleção "users" para o ranking global
                     await setDoc(userDocRef, { totalPoints: totalPoints + points, lastPlayed: new Date().toISOString().split('T')[0] }, { merge: true });
 
                     showWinMessage();
-                    loadRanking(); // Recarrega o ranking após o envio do resultado
-        
+                    loadRanking(); 
+                
                 } catch (err) {
                     console.error("Erro ao salvar resultado no Firestore:", err);
                     resultMsg.textContent = "Erro ao salvar seu resultado. Tente novamente.";
@@ -709,13 +697,17 @@
             hideLoading();
         });
         
-        // Carregar Ranking
+        // Função para carregar e renderizar os rankings
         async function loadRanking() {
             showLoading();
             try {
                 // Lógica de Ranking Diário
                 const today = new Date().toISOString().split('T')[0];
-                const dailyGamesQuery = query(collection(db, "ranking"), where("challengeDate", "==", today), orderBy("points", "desc"));
+                const dailyGamesQuery = query(
+                    collection(db, "ranking"), 
+                    where("challengeDate", "==", today), 
+                    orderBy("points", "desc")
+                );
                 const dailySnapshot = await getDocs(dailyGamesQuery);
                 const dailyData = dailySnapshot.docs.map(doc => doc.data());
                 
@@ -728,10 +720,14 @@
                 });
         
                 // Lógica de Ranking Global
-                const overallUsersQuery = query(collection(db, "users"), orderBy("totalPoints", "desc"), limit(10));
+                const overallUsersQuery = query(
+                    collection(db, "users"), 
+                    orderBy("totalPoints", "desc"), 
+                    limit(10)
+                );
                 const overallSnapshot = await getDocs(overallUsersQuery);
                 const overallData = overallSnapshot.docs.map(doc => doc.data());
-        
+
                 const globalBody = document.querySelector("#global-ranking tbody");
                 globalBody.innerHTML = "";
                 overallData.forEach((row, idx) => {
@@ -739,7 +735,8 @@
                         <td>${idx + 1}</td><td>${row.username}</td><td>${row.totalPoints}</td>
                     </tr>`;
                 });
-                
+
+                // Mostra as tabelas
                 document.getElementById("ranking-section").style.display = "flex";
         
             } catch (err) {
