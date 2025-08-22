@@ -8,16 +8,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- O CSS otimizado deve ser referenciado aqui -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- O overlay de loading agora é controlado por uma classe 'is-visible' -->
     <div id="loading-overlay" class="loading-overlay">
         <div class="spinner"></div>
     </div>
 
-    <!-- Usando a tag <main> para melhor semântica -->
     <main class="container" id="appContainer">
 
         <div class="game-intro">
@@ -25,27 +22,38 @@
             <p>O jogo diário de palavras criptografadas</p>
         </div>
 
-        <!-- Seção de Login com a tag <form> -->
         <section id="login-section" class="content-section is-visible">
             <form>
                 <h2>Entrar</h2>
-                <input type="email" id="login-email" placeholder="E-mail" required />
+                <input type="text" id="login-username" placeholder="Nome de Usuário" required />
                 <input type="password" id="login-password" placeholder="Senha" required />
                 <button class="btn" id="btnLogin">Entrar</button>
                 <p>Ainda não tem conta? <a href="#" id="goRegister">Registrar</a></p>
+                <p><a href="#" id="goForgotPassword">Esqueceu a senha?</a></p>
                 <p id="loginMsg" class="result-message"></p>
             </form>
         </section>
 
-        <!-- Seção de Registro com a tag <form> -->
         <section id="register-section" class="content-section">
             <form>
                 <h2>Registrar</h2>
                 <input type="email" id="register-email" placeholder="E-mail" required />
+                <input type="text" id="register-username" placeholder="Nome de Usuário" required />
                 <input type="password" id="register-password" placeholder="Senha" required />
                 <button class="btn" id="btnRegister">Criar Conta</button>
                 <p>Já tem conta? <a href="#" id="goLogin">Login</a></p>
                 <p id="registerMsg" class="result-message"></p>
+            </form>
+        </section>
+
+        <section id="forgot-password-section" class="content-section">
+            <form>
+                <h2>Recuperar Senha</h2>
+                <p>Informe o e-mail de cadastro para receber o link de recuperação de senha.</p>
+                <input type="email" id="forgot-password-email" placeholder="E-mail" required />
+                <button class="btn" id="btnForgotPassword">Enviar Link</button>
+                <p><a href="#" id="goLoginFromForgotPassword">Voltar para o Login</a></p>
+                <p id="forgotPasswordMsg" class="result-message"></p>
             </form>
         </section>
 
@@ -76,7 +84,6 @@
             <p id="result" class="result-message"></p>
             <button id="logout" class="btn btn-danger" style="display:none;">Sair</button>
 
-            <!-- Renomeado para 'ranking-grid' para maior clareza -->
             <div id="ranking-section" class="ranking-flex hidden">
                 <div class="ranking-block">
                     <h2>🏆 Diário</h2>
@@ -100,11 +107,29 @@
         </section>
     </main>
     
-    <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, orderBy, limit, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            onAuthStateChanged, 
+            signOut,
+            sendPasswordResetEmail 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            setDoc, 
+            getDoc, 
+            collection, 
+            query, 
+            where, 
+            getDocs, 
+            orderBy, 
+            limit, 
+            addDoc 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // ==========================================================
         // CONFIGURAÇÃO DO PROJETO FIREBASE (COM SUAS CREDENCIAIS)
@@ -130,8 +155,6 @@
         let startTime = null;
         let attempts = 0;
 
-        // SUGESTÃO: Modifique as funções de loading para usar classes CSS
-        // Isso centraliza o controle de visibilidade no CSS e é uma prática melhor.
         const loadingOverlay = document.getElementById("loading-overlay");
         function showLoading() {
             loadingOverlay.classList.add("is-visible");
@@ -141,21 +164,19 @@
         }
 
         // Função para mostrar ou esconder seções
-        function showSection(id, visible) {
+        function showSection(id) {
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('is-visible');
+            });
             const el = document.getElementById(id);
             if (el) {
-                document.querySelectorAll('.content-section').forEach(section => {
-                    section.classList.remove('is-visible');
-                });
-                if (visible) {
-                    el.classList.add('is-visible');
-                }
+                el.classList.add('is-visible');
             }
         }
 
         // Funções de UI
         function showGameUI(user) {
-            showSection("game-section", true);
+            showSection("game-section");
             document.getElementById("welcome").textContent = `👋 Bem-vindo, ${user}!`;
             document.getElementById("logout").style.display = "block";
             clearDailyBlockUI(); // garante que o aviso não apareça até a checagem no ranking
@@ -210,10 +231,10 @@
                 try {
                     const docRef = doc(db, "users", user.uid);
                     const docSnap = await getDoc(docRef);
-                    let username = user.email.split('@')[0];
+                    let username = 'Usuário'; // Valor padrão
 
-                    if (docSnap.exists()) {
-                        username = docSnap.data().username || username;
+                    if (docSnap.exists() && docSnap.data().username) {
+                        username = docSnap.data().username;
                     }
 
                     showGameUI(username);
@@ -242,42 +263,61 @@
                 }
 
             } else {
-                showSection("login-section", true);
+                showSection("login-section");
             }
         });
 
         // Lógica para alternar entre as telas de login e registro
         document.getElementById("goRegister").addEventListener("click", (e) => {
             e.preventDefault();
-            showSection("login-section", false);
-            showSection("register-section", true);
+            showSection("register-section");
         });
 
         document.getElementById("goLogin").addEventListener("click", (e) => {
             e.preventDefault();
-            showSection("register-section", false);
-            showSection("login-section", true);
+            showSection("login-section");
+        });
+
+        // Lógica para alternar para a tela de recuperar senha
+        document.getElementById("goForgotPassword").addEventListener("click", (e) => {
+            e.preventDefault();
+            showSection("forgot-password-section");
+        });
+
+        document.getElementById("goLoginFromForgotPassword").addEventListener("click", (e) => {
+            e.preventDefault();
+            showSection("login-section");
         });
 
         // Lógica do botão de registro
         document.getElementById("btnRegister").addEventListener("click", async (e) => {
             e.preventDefault();
             const email = document.getElementById("register-email").value.trim();
+            const username = document.getElementById("register-username").value.trim();
             const password = document.getElementById("register-password").value;
             const registerMsg = document.getElementById("registerMsg");
             
-            if (!email || !password) {
-                registerMsg.textContent = "E-mail e senha obrigatórios.";
+            if (!email || !username || !password) {
+                registerMsg.textContent = "E-mail, nome de usuário e senha são obrigatórios.";
                 return;
             }
             
             showLoading();
             try {
+                // Checar se o username já existe
+                const usernameQuery = query(collection(db, "users"), where("username", "==", username));
+                const usernameSnap = await getDocs(usernameQuery);
+                if (!usernameSnap.empty) {
+                    registerMsg.textContent = "Nome de usuário já existe. Escolha outro.";
+                    hideLoading();
+                    return;
+                }
+
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
                 await setDoc(doc(db, "users", user.uid), {
-                    username: email.split('@')[0],
+                    username: username,
                     email: user.email,
                     createdAt: new Date(),
                     totalPoints: 0
@@ -302,29 +342,70 @@
         // Lógica do botão de login
         document.getElementById("btnLogin").addEventListener("click", async (e) => {
             e.preventDefault();
-            const email = document.getElementById("login-email").value.trim();
+            const username = document.getElementById("login-username").value.trim();
             const password = document.getElementById("login-password").value;
             const loginMsg = document.getElementById("loginMsg");
             
-            if (!email || !password) {
-                loginMsg.textContent = "E-mail e senha obrigatórios.";
+            if (!username || !password) {
+                loginMsg.textContent = "Nome de usuário e senha obrigatórios.";
                 return;
             }
 
             showLoading();
             try {
+                // Encontrar o e-mail do usuário pelo username no Firestore
+                const userQuery = query(collection(db, "users"), where("username", "==", username));
+                const userSnapshot = await getDocs(userQuery);
+
+                if (userSnapshot.empty) {
+                    loginMsg.textContent = "Nome de usuário ou senha inválidos.";
+                    hideLoading();
+                    return;
+                }
+
+                const userData = userSnapshot.docs[0].data();
+                const email = userData.email;
+
+                // Fazer o login com o e-mail e a senha no Firebase Auth
                 await signInWithEmailAndPassword(auth, email, password);
                 loginMsg.textContent = "Login realizado com sucesso!";
 
             } catch (error) {
                 console.error("Erro de login:", error);
-                let errorMessage = "E-mail ou senha inválidos. Tente novamente.";
-                if (error.code === 'auth/user-not-found') {
-                    errorMessage = 'Nenhuma conta encontrada com este e-mail.';
-                } else if (error.code === 'auth/wrong-password') {
+                let errorMessage = "Nome de usuário ou senha inválidos.";
+                if (error.code === 'auth/wrong-password') {
                     errorMessage = 'Senha incorreta.';
                 }
                 loginMsg.textContent = errorMessage;
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // Lógica do botão de recuperação de senha
+        document.getElementById("btnForgotPassword").addEventListener("click", async (e) => {
+            e.preventDefault();
+            const email = document.getElementById("forgot-password-email").value.trim();
+            const forgotPasswordMsg = document.getElementById("forgotPasswordMsg");
+
+            if (!email) {
+                forgotPasswordMsg.textContent = "Por favor, digite seu e-mail.";
+                return;
+            }
+
+            showLoading();
+            try {
+                await sendPasswordResetEmail(auth, email);
+                forgotPasswordMsg.textContent = "Um link de recuperação de senha foi enviado para seu e-mail!";
+                forgotPasswordMsg.style.color = "#10b981";
+            } catch (error) {
+                console.error("Erro ao enviar link de recuperação:", error);
+                let errorMessage = "Erro ao enviar o link. Verifique o e-mail e tente novamente.";
+                if (error.code === 'auth/user-not-found') {
+                    errorMessage = 'Nenhuma conta encontrada com este e-mail.';
+                }
+                forgotPasswordMsg.textContent = errorMessage;
+                forgotPasswordMsg.style.color = "red";
             } finally {
                 hideLoading();
             }
@@ -427,7 +508,6 @@
                     challengeDiv.innerHTML = "";
                     cipheredWords.forEach((word, wordIndex) => {
                         const wordDiv = document.createElement("div");
-                        // As classes de layout agora estão no CSS, o HTML/JS fica mais limpo.
                         wordDiv.className = "challenge-word";
                         
                         const encryptedDisplay = word.split('').join(' ');
@@ -440,8 +520,6 @@
                             const input = document.createElement("input");
                             input.type = "text";
                             input.maxLength = "1";
-                            // NOTA: As classes de tamanho do Tailwind (w-8, h-8) foram sobrepostas no CSS
-                            // para permitir um layout mais responsivo com clamp().
                             input.className = "letter-input w-8 h-8";
                             input.setAttribute("data-word-index", wordIndex);
                             input.setAttribute("data-letter-index", i);
@@ -542,7 +620,7 @@
 
                     const userDocRef = doc(db, "users", user.uid);
                     const userSnap = await getDoc(userDocRef);
-                    let username = user.email.split('@')[0];
+                    let username = 'Usuário';
                     let totalPoints = 0;
                     if (userSnap.exists()) {
                         username = userSnap.data().username || username;
