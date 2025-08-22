@@ -102,6 +102,55 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        /* Estilos adicionais para as tabelas de ranking */
+        .ranking-flex {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            margin-top: 2rem;
+            width: 100%;
+        }
+        @media (min-width: 768px) {
+            .ranking-flex {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+        }
+        .ranking-block {
+            background-color: #f9fafb;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            flex: 1;
+        }
+        .ranking-block h2 {
+            font-weight: 700;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+        .ranking-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .ranking-table th, .ranking-table td {
+            padding: 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .ranking-table th {
+            color: #6b7280;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        .ranking-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .ranking-table td:nth-child(1) { width: 10%; }
+        .ranking-table td:nth-child(2) { width: 60%; }
+        .ranking-table td:nth-child(3) { width: 30%; }
+
     </style>
 </head>
 <body>
@@ -188,7 +237,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, orderBy, limit, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // ==========================================================
         // CONFIGURAÇÃO DO PROJETO FIREBASE (COM SUAS CREDENCIAIS)
@@ -212,6 +261,7 @@
         // ==========================================================
         let originalWords = [];
         let startTime = null;
+        let attempts = 0; // Nova variável para contar as tentativas
 
         // Funções para mostrar/esconder o loading overlay
         function showLoading() {
@@ -362,7 +412,7 @@
                     username: email.split('@')[0], // Nome de usuário padrão
                     email: user.email,
                     createdAt: new Date(),
-                    totalPoints: 0
+                    totalPoints: 0 // Novo campo para o ranking global
                 });
 
                 registerMsg.textContent = "Registro e login realizados com sucesso!";
@@ -434,7 +484,7 @@
         });
         
         // ==========================================================
-        // LÓGICA DO JOGO
+        // LÓGICA DO JOGO E RANKING
         // ==========================================================
         
         // Funções utilitárias
@@ -462,6 +512,25 @@
                 }
             }
             return encrypted;
+        }
+
+        // Nova função para calcular a pontuação
+        function calculatePoints(answerTime, attempts) {
+            // A pontuação base é 1000.
+            // Penalidade por tempo: 5 pontos por segundo.
+            // Penalidade por tentativas: 50 pontos por tentativa.
+            const basePoints = 1000;
+            const timePenalty = answerTime * 5;
+            const attemptsPenalty = (attempts - 1) * 50; // A primeira tentativa não penaliza
+            
+            let points = basePoints - timePenalty - attemptsPenalty;
+            
+            // Garante que a pontuação não seja menor que 100
+            if (points < 100) {
+                points = 100;
+            }
+            
+            return points;
         }
 
         // Carregar Desafio
@@ -537,6 +606,7 @@
                     clearDailyBlockUI();
                     document.getElementById("result").textContent = "";
                     startTime = Date.now();
+                    attempts = 0; // Reinicia a contagem de tentativas
         
                 } else {
                     document.getElementById("theme").textContent = "Nenhum desafio encontrado para hoje.";
@@ -555,12 +625,16 @@
             }
         });
         
-        // Verificar Respostas + Enviar Ranking (Lógica adaptada para Firebase)
+        // Verificar Respostas + Enviar Ranking
         document.getElementById("submitAnswers").addEventListener("click", async () => {
             const user = auth.currentUser;
             if (!user) return;
-        
+
             showLoading();
+            
+            // Incrementa o número de tentativas
+            attempts++;
+            
             let correctCount = 0;
             originalWords.forEach((answer, wordIndex) => {
                 const inputs = document.querySelectorAll(`[data-word-index="${wordIndex}"]`);
@@ -576,7 +650,7 @@
                 }
         
                 inputs.forEach(input => {
-                    input.classList.remove('correct', 'wrong');
+                    input.classList.remove('bg-green-200', 'bg-red-200');
                     if (isWordCorrect) {
                         input.classList.add('bg-green-200'); // Tailwind class for correct
                     } else {
@@ -586,61 +660,62 @@
             });
         
             const resultMsg = document.getElementById("result");
-            const elapsed = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
-            const points = correctCount; // Lógica de pontuação simples, pode ser mais complexa
             const isCorrect = (correctCount === originalWords.length);
         
             if (isCorrect) {
                 resultMsg.textContent = "🎉 Parabéns! Você acertou todas!";
                 resultMsg.style.color = "#10b981";
+                
+                const answerTime = Math.floor((Date.now() - startTime) / 1000);
+                const points = calculatePoints(answerTime, attempts);
+
+                try {
+                    // Pega o username do documento do usuário
+                    const userDocRef = doc(db, "users", user.uid);
+                    const userSnap = await getDoc(userDocRef);
+                    let username = user.email.split('@')[0];
+                    let totalPoints = 0;
+                    if (userSnap.exists()) {
+                        username = userSnap.data().username || username;
+                        totalPoints = userSnap.data().totalPoints || 0;
+                    }
+                    
+                    // Salva a pontuação na coleção "ranking" para o ranking diário
+                    await addDoc(collection(db, "ranking"), {
+                        userId: user.uid,
+                        username: username,
+                        answerTime: answerTime,
+                        challengeDate: new Date().toISOString().split('T')[0],
+                        attempts: attempts,
+                        points: points,
+                        timestamp: new Date()
+                    });
+
+                    // Atualiza a pontuação total na coleção "users" para o ranking global
+                    await setDoc(userDocRef, { totalPoints: totalPoints + points, lastPlayed: new Date().toISOString().split('T')[0] }, { merge: true });
+
+                    showWinMessage();
+                    loadRanking(); // Recarrega o ranking após o envio do resultado
+        
+                } catch (err) {
+                    console.error("Erro ao salvar resultado no Firestore:", err);
+                    resultMsg.textContent = "Erro ao salvar seu resultado. Tente novamente.";
+                }
             } else {
-                resultMsg.textContent = `Você acertou ${correctCount} de ${originalWords.length}.`;
+                resultMsg.textContent = `Você acertou ${correctCount} de ${originalWords.length}. Tente novamente.`;
                 resultMsg.style.color = "#FFB300";
             }
-        
-            try {
-                // Salva o resultado do jogo no Firestore
-                const today = new Date().toISOString().split('T')[0];
-                const gameDocRef = doc(db, "games", `${user.uid}-${today}`);
-                await setDoc(gameDocRef, {
-                    userId: user.uid,
-                    username: user.email.split('@')[0], // Pega o username do email
-                    date: today,
-                    score: points,
-                    elapsedTime: elapsed,
-                    isCompleted: isCorrect,
-                }, { merge: true }); // Use merge: true para não apagar dados existentes
-
-                // Se acertou, atualiza a pontuação global do usuário
-                if (isCorrect) {
-                    const userDocRef = doc(db, "users", user.uid);
-                    await setDoc(userDocRef, { totalPoints: 0, lastPlayed: today }, { merge: true });
-                    // A lógica de pontuação global deve ser implementada em uma Cloud Function para segurança.
-                    // Por enquanto, vamos apenas mostrar a mensagem de vitória.
-                    showWinMessage();
-                } else {
-                    // Se não acertou tudo, talvez o usuário queira tentar de novo.
-                    // Para o jogo diário, a regra é uma tentativa por dia.
-                    // Vamos manter o botão de submissão visível para tentar novamente.
-                }
-
-                loadRanking(); // Atualiza o ranking para mostrar os novos resultados
-        
-            } catch (err) {
-                console.error("Erro ao enviar resultado para o Firestore:", err);
-                resultMsg.textContent = "Erro ao salvar seu resultado. Tente novamente.";
-            } finally {
-                hideLoading();
-            }
+            
+            hideLoading();
         });
         
-        // Carregar Ranking (Lógica adaptada para Firebase)
+        // Carregar Ranking
         async function loadRanking() {
             showLoading();
             try {
                 // Lógica de Ranking Diário
                 const today = new Date().toISOString().split('T')[0];
-                const dailyGamesQuery = query(collection(db, "games"), where("date", "==", today), orderBy("score", "desc"), orderBy("elapsedTime"));
+                const dailyGamesQuery = query(collection(db, "ranking"), where("challengeDate", "==", today), orderBy("points", "desc"));
                 const dailySnapshot = await getDocs(dailyGamesQuery);
                 const dailyData = dailySnapshot.docs.map(doc => doc.data());
                 
@@ -648,7 +723,7 @@
                 dailyBody.innerHTML = "";
                 dailyData.forEach((row, idx) => {
                     dailyBody.innerHTML += `<tr>
-                        <td>${idx + 1}</td><td>${row.username}</td><td>${row.score}</td>
+                        <td>${idx + 1}</td><td>${row.username}</td><td>${row.points}</td>
                     </tr>`;
                 });
         
@@ -673,7 +748,6 @@
                 hideLoading();
             }
         }
-
     </script>
 </body>
 </html>
