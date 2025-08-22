@@ -6,6 +6,7 @@
 /* - Conflitos entre Tailwind e CSS local foram resolvidos.            */
 /* - Classes não utilizadas foram removidas.                           */
 /* - Layout de rankings ajustado para usar Flexbox.                    */
+/* - Adicionado estilo para as letras da dica.                         */
 /* =================================================================== */
 
 /* ==================== */
@@ -32,6 +33,8 @@
     --correct-border: #2e7d32;
     --incorrect-bg: #c62828;
     --incorrect-border: #c62828;
+    --hint-bg: #4a4a4a; /* NOVO: Cor de fundo para as dicas */
+    --hint-border: #666666; /* NOVO: Cor da borda para as dicas */
 }
 
 * {
@@ -357,6 +360,13 @@ a:hover {
     background-color: var(--incorrect-bg);
     border-color: var(--incorrect-border);
     color: #fff;
+}
+
+/* NOVO: Estilo para as letras da dica */
+.letter-input.hint {
+    background-color: var(--hint-bg);
+    border-color: var(--hint-border);
+    color: var(--text-color-light);
 }
 
 /* ==================== */
