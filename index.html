@@ -150,6 +150,7 @@
         .ranking-table td:nth-child(1) { width: 10%; }
         .ranking-table td:nth-child(2) { width: 60%; }
         .ranking-table td:nth-child(3) { width: 30%; }
+
     </style>
 </head>
 <body>
@@ -158,6 +159,7 @@
     </div>
 
     <div class="container" id="appContainer">
+
         <div class="game-intro">
             <h1 class="main-title">ENCRYPTA</h1>
             <p>O jogo diário de palavras criptografadas</p>
@@ -233,18 +235,21 @@
     
     <!-- Firebase SDKs -->
     <script type="module">
-        // Importa os módulos necessários do Firebase SDK.
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, orderBy, limit, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // ==========================================================
         // CONFIGURAÇÃO DO PROJETO FIREBASE (COM SUAS CREDENCIAIS)
-        // Usamos as variáveis globais do ambiente Canvas para configurar o Firebase.
         // ==========================================================
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const firebaseConfig = {
+            apiKey: "AIzaSyC8UGRrAwvAQ_PEy7STJwQWUSnE2-qWuII",
+            authDomain: "encryptame-1.firebaseapp.com",
+            projectId: "encryptame-1",
+            storageBucket: "encryptame-1.appspot.com",
+            messagingSenderId: "109950408456",
+            appId: "1:109950408456:web:65492d295240c5f106603a"
+        };
         
         // Inicializa o Firebase e seus serviços
         const app = initializeApp(firebaseConfig);
@@ -266,30 +271,23 @@
         function hideLoading() {
             document.getElementById("loading-overlay").style.display = "none";
         }
-        
-        // Função para exibir mensagens de erro no UI
-        function showMessage(elementId, message, isError = false) {
-            const el = document.getElementById(elementId);
-            if (el) {
-                el.textContent = message;
-                el.style.color = isError ? "#dc2626" : "#10b981"; // Red for error, green for success
-            }
-        }
 
         // Função para mostrar ou esconder seções com a nova classe 'is-visible'
-        function showSection(id) {
+        function showSection(id, visible) {
             const el = document.getElementById(id);
             if (el) {
                 document.querySelectorAll('.content-section').forEach(section => {
                     section.classList.remove('is-visible');
                 });
-                el.classList.add('is-visible');
+                if (visible) {
+                    el.classList.add('is-visible');
+                }
             }
         }
 
         // Funções de UI
         function showGameUI(user) {
-            showSection("game-section");
+            showSection("game-section", true);
             document.getElementById("welcome").textContent = `👋 Bem-vindo, ${user}!`;
             document.getElementById("logout").style.display = "block";
             loadRanking();
@@ -342,28 +340,19 @@
             if (user) {
                 // Usuário logado
                 try {
-                    // Obtém os dados do usuário da coleção privada
-                    const userDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'private', 'userData');
-                    const docSnap = await getDoc(userDocRef);
-                    let username = user.email ? user.email.split('@')[0] : "Usuário";
+                    const docRef = doc(db, "users", user.uid);
+                    const docSnap = await getDoc(docRef);
+                    let username = user.email.split('@')[0];
 
                     if (docSnap.exists()) {
                         username = docSnap.data().username || username;
-                    } else {
-                        // Se o documento do usuário não existir (novo registro), cria um.
-                        await setDoc(userDocRef, {
-                            username: username,
-                            email: user.email,
-                            createdAt: new Date(),
-                            totalPoints: 0
-                        });
                     }
 
                     showGameUI(username);
                     
                     // Verifica se o usuário já jogou hoje
                     const today = new Date().toISOString().split('T')[0];
-                    const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'ranking', `${user.uid}-${today}`);
+                    const gameRef = doc(db, "games", `${user.uid}-${today}`);
                     const gameSnap = await getDoc(gameRef);
 
                     if (gameSnap.exists()) {
@@ -374,42 +363,30 @@
 
                 } catch (error) {
                     console.error("Erro ao carregar dados do usuário:", error);
-                    showMessage('appContainer', 'Ocorreu um erro ao carregar seus dados.', true);
+                    // Usando um modal/div customizado em vez de alert()
+                    const errorMessageDiv = document.createElement('div');
+                    errorMessageDiv.textContent = 'Ocorreu um erro ao carregar seus dados.';
+                    errorMessageDiv.style.color = 'red';
+                    document.getElementById('appContainer').appendChild(errorMessageDiv);
                 }
 
             } else {
                 // Nenhum usuário logado
-                showSection("login-section");
+                showSection("login-section", true);
             }
         });
-
-        // Tenta fazer login com o token personalizado do ambiente.
-        // Se falhar (por exemplo, token expirado), tenta o login anônimo.
-        async function signInWithTokenOrAnonymously() {
-            showLoading();
-            try {
-                if (authToken) {
-                    await signInWithCustomToken(auth, authToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Erro ao tentar login automático:", error);
-                await signInAnonymously(auth);
-            } finally {
-                hideLoading();
-            }
-        }
 
         // Lógica para alternar entre as telas de login e registro
         document.getElementById("goRegister").addEventListener("click", (e) => {
             e.preventDefault();
-            showSection("register-section");
+            showSection("login-section", false);
+            showSection("register-section", true);
         });
 
         document.getElementById("goLogin").addEventListener("click", (e) => {
             e.preventDefault();
-            showSection("login-section");
+            showSection("register-section", false);
+            showSection("login-section", true);
         });
 
         // Lógica do botão de registro
@@ -417,9 +394,10 @@
             e.preventDefault();
             const email = document.getElementById("register-email").value.trim();
             const password = document.getElementById("register-password").value;
+            const registerMsg = document.getElementById("registerMsg");
             
             if (!email || !password) {
-                showMessage('registerMsg', "E-mail e senha obrigatórios.", true);
+                registerMsg.textContent = "E-mail e senha obrigatórios.";
                 return;
             }
             
@@ -429,17 +407,17 @@
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
-                // Salva o documento do usuário no Firestore (coleção privada)
-                const userDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'private', 'userData');
-                await setDoc(userDocRef, {
+                // Salva o documento do usuário no Firestore
+                await setDoc(doc(db, "users", user.uid), {
                     username: email.split('@')[0], // Nome de usuário padrão
                     email: user.email,
                     createdAt: new Date(),
-                    totalPoints: 0
+                    totalPoints: 0 // Novo campo para o ranking global
                 });
 
-                showMessage('registerMsg', "Registro e login realizados com sucesso!");
+                registerMsg.textContent = "Registro e login realizados com sucesso!";
                 // onAuthStateChanged irá lidar com a transição de tela.
+
             } catch (error) {
                 console.error("Erro de registro:", error);
                 let errorMessage = "Erro ao registrar. Tente novamente.";
@@ -448,7 +426,7 @@
                 } else if (error.code === 'auth/weak-password') {
                     errorMessage = 'A senha deve ter pelo menos 6 caracteres.';
                 }
-                showMessage('registerMsg', errorMessage, true);
+                registerMsg.textContent = errorMessage;
             } finally {
                 hideLoading();
             }
@@ -459,9 +437,10 @@
             e.preventDefault();
             const email = document.getElementById("login-email").value.trim();
             const password = document.getElementById("login-password").value;
+            const loginMsg = document.getElementById("loginMsg");
             
             if (!email || !password) {
-                showMessage('loginMsg', "E-mail e senha obrigatórios.", true);
+                loginMsg.textContent = "E-mail e senha obrigatórios.";
                 return;
             }
 
@@ -469,15 +448,18 @@
             try {
                 // Faz login do usuário no Firebase
                 await signInWithEmailAndPassword(auth, email, password);
-                showMessage('loginMsg', "Login realizado com sucesso!");
+                loginMsg.textContent = "Login realizado com sucesso!";
                 // onAuthStateChanged irá lidar com a transição de tela.
+
             } catch (error) {
                 console.error("Erro de login:", error);
                 let errorMessage = "E-mail ou senha inválidos. Tente novamente.";
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                    errorMessage = 'E-mail ou senha inválidos.';
+                if (error.code === 'auth/user-not-found') {
+                    errorMessage = 'Nenhuma conta encontrada com este e-mail.';
+                } else if (error.code === 'auth/wrong-password') {
+                    errorMessage = 'Senha incorreta.';
                 }
-                showMessage('loginMsg', errorMessage, true);
+                loginMsg.textContent = errorMessage;
             } finally {
                 hideLoading();
             }
@@ -491,7 +473,11 @@
                 // onAuthStateChanged irá redirecionar para a tela de login.
             } catch (error) {
                 console.error("Erro ao sair:", error);
-                showMessage('appContainer', 'Erro ao tentar sair.', true);
+                // Usando um modal/div customizado em vez de alert()
+                const errorMessageDiv = document.createElement('div');
+                errorMessageDiv.textContent = 'Erro ao tentar sair.';
+                errorMessageDiv.style.color = 'red';
+                document.getElementById('appContainer').appendChild(errorMessageDiv);
             } finally {
                 hideLoading();
             }
@@ -530,12 +516,16 @@
 
         // Nova função para calcular a pontuação
         function calculatePoints(answerTime, attempts) {
+            // A pontuação base é 1000.
+            // Penalidade por tempo: 5 pontos por segundo.
+            // Penalidade por tentativas: 50 pontos por tentativa.
             const basePoints = 1000;
             const timePenalty = answerTime * 5;
-            const attemptsPenalty = (attempts - 1) * 50; 
+            const attemptsPenalty = (attempts - 1) * 50; // A primeira tentativa não penaliza
             
             let points = basePoints - timePenalty - attemptsPenalty;
             
+            // Garante que a pontuação não seja menor que 100
             if (points < 100) {
                 points = 100;
             }
@@ -550,8 +540,9 @@
         
             showLoading();
             try {
+                // Monta o nome do documento do dia no formato YYYY-MM-DD
                 const today = new Date().toISOString().split('T')[0];
-                const challengeRef = doc(db, 'artifacts', appId, 'public', 'data', 'desafios', today);
+                const challengeRef = doc(db, "desafios", today);
                 const challengeSnap = await getDoc(challengeRef);
         
                 if (challengeSnap.exists()) {
@@ -563,8 +554,9 @@
                     ];
                     const cipher = challengeData.cipher_alpha;
                     
+                    // Criptografa as palavras para exibir
                     const cipheredWords = words.map(word => encryptWord(word, cipher));
-                    originalWords = words; 
+                    originalWords = words; // Salva as palavras originais para verificação posterior
         
                     document.getElementById("theme").textContent = `Tema: ${challengeData.theme || "Sem tema"}`;
                     const challengeDiv = document.getElementById("challenge");
@@ -614,7 +606,7 @@
                     clearDailyBlockUI();
                     document.getElementById("result").textContent = "";
                     startTime = Date.now();
-                    attempts = 0;
+                    attempts = 0; // Reinicia a contagem de tentativas
         
                 } else {
                     document.getElementById("theme").textContent = "Nenhum desafio encontrado para hoje.";
@@ -623,7 +615,11 @@
         
             } catch (err) {
                 console.error("Erro ao carregar desafio:", err);
-                showMessage('appContainer', 'Erro ao carregar desafio do dia.', true);
+                // Usando um modal/div customizado em vez de alert()
+                const errorMessageDiv = document.createElement('div');
+                errorMessageDiv.textContent = 'Erro ao carregar desafio do dia.';
+                errorMessageDiv.style.color = 'red';
+                document.getElementById('appContainer').appendChild(errorMessageDiv);
             } finally {
                 hideLoading();
             }
@@ -636,6 +632,7 @@
 
             showLoading();
             
+            // Incrementa o número de tentativas
             attempts++;
             
             let correctCount = 0;
@@ -661,7 +658,7 @@
                     }
                 });
             });
-            
+        
             const resultMsg = document.getElementById("result");
             const isCorrect = (correctCount === originalWords.length);
         
@@ -673,20 +670,18 @@
                 const points = calculatePoints(answerTime, attempts);
 
                 try {
-                    // Pega o username e totalPoints do documento do usuário
-                    const userDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'private', 'userData');
+                    // Pega o username do documento do usuário
+                    const userDocRef = doc(db, "users", user.uid);
                     const userSnap = await getDoc(userDocRef);
-                    let username = user.email ? user.email.split('@')[0] : "Usuário";
+                    let username = user.email.split('@')[0];
                     let totalPoints = 0;
                     if (userSnap.exists()) {
-                        const userData = userSnap.data();
-                        username = userData.username || username;
-                        totalPoints = userData.totalPoints || 0;
+                        username = userSnap.data().username || username;
+                        totalPoints = userSnap.data().totalPoints || 0;
                     }
                     
-                    // Salva a pontuação na coleção de ranking diário (pública)
-                    const rankingDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'ranking', `${user.uid}-${new Date().toISOString().split('T')[0]}`);
-                    await setDoc(rankingDocRef, {
+                    // Salva a pontuação na coleção "ranking" para o ranking diário
+                    await addDoc(collection(db, "ranking"), {
                         userId: user.uid,
                         username: username,
                         answerTime: answerTime,
@@ -694,21 +689,21 @@
                         attempts: attempts,
                         points: points,
                         timestamp: new Date()
-                    }, { merge: true });
+                    });
 
-                    // Atualiza a pontuação total na coleção de usuário (privada)
-                    await setDoc(userDocRef, { totalPoints: totalPoints + points }, { merge: true });
+                    // Atualiza a pontuação total na coleção "users" para o ranking global
+                    await setDoc(userDocRef, { totalPoints: totalPoints + points, lastPlayed: new Date().toISOString().split('T')[0] }, { merge: true });
 
                     showWinMessage();
                     loadRanking(); // Recarrega o ranking após o envio do resultado
         
                 } catch (err) {
                     console.error("Erro ao salvar resultado no Firestore:", err);
-                    showMessage('result', "Erro ao salvar seu resultado. Tente novamente.", true);
+                    resultMsg.textContent = "Erro ao salvar seu resultado. Tente novamente.";
                 }
             } else {
-                showMessage('result', `Você acertou ${correctCount} de ${originalWords.length}. Tente novamente.`, false);
-                resultMsg.style.color = "#FFB300"; // Usando uma cor para 'aviso'
+                resultMsg.textContent = `Você acertou ${correctCount} de ${originalWords.length}. Tente novamente.`;
+                resultMsg.style.color = "#FFB300";
             }
             
             hideLoading();
@@ -720,7 +715,7 @@
             try {
                 // Lógica de Ranking Diário
                 const today = new Date().toISOString().split('T')[0];
-                const dailyGamesQuery = query(collection(db, 'artifacts', appId, 'public', 'data', 'ranking'), where("challengeDate", "==", today), orderBy("points", "desc"));
+                const dailyGamesQuery = query(collection(db, "ranking"), where("challengeDate", "==", today), orderBy("points", "desc"));
                 const dailySnapshot = await getDocs(dailyGamesQuery);
                 const dailyData = dailySnapshot.docs.map(doc => doc.data());
                 
@@ -733,7 +728,7 @@
                 });
         
                 // Lógica de Ranking Global
-                const overallUsersQuery = query(collection(db, 'artifacts', appId, 'users', user.uid, 'private'), orderBy("totalPoints", "desc"), limit(10));
+                const overallUsersQuery = query(collection(db, "users"), orderBy("totalPoints", "desc"), limit(10));
                 const overallSnapshot = await getDocs(overallUsersQuery);
                 const overallData = overallSnapshot.docs.map(doc => doc.data());
         
@@ -749,15 +744,10 @@
         
             } catch (err) {
                 console.error("Erro ao carregar ranking:", err);
-                showMessage('appContainer', 'Erro ao carregar ranking.', true);
             } finally {
                 hideLoading();
             }
         }
-
-        // Tenta fazer o login automático ao carregar a página
-        signInWithTokenOrAnonymously();
-
     </script>
 </body>
 </html>
