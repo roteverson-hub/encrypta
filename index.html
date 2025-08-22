@@ -109,7 +109,6 @@
             gap: 2rem;
             margin-top: 2rem;
             width: 100%;
-            align-items: center;
         }
         @media (min-width: 768px) {
             .ranking-flex {
@@ -125,7 +124,6 @@
             border-radius: 0.75rem;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             flex: 1;
-            min-width: 300px;
         }
         .ranking-block h2 {
             font-weight: 700;
@@ -160,32 +158,9 @@
     </div>
 
     <div class="container" id="appContainer">
-
         <div class="game-intro">
             <h1 class="main-title">ENCRYPTA</h1>
             <p>O jogo diário de palavras criptografadas</p>
-        </div>
-
-        <!-- As seções de ranking agora estão fora da seção do jogo para sempre serem visíveis -->
-        <div id="ranking-section" class="ranking-flex">
-            <div class="ranking-block">
-                <h2>🏆 Diário</h2>
-                <table id="daily-ranking" class="ranking-table">
-                    <thead>
-                        <tr><th>#</th><th>Usuário</th><th>Pontos</th></tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-            <div class="ranking-block">
-                <h2>🌍 Global</h2>
-                <table id="global-ranking" class="ranking-table">
-                    <thead>
-                        <tr><th>#</th><th>Usuário</th><th>Pontos</th></tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
         </div>
 
         <div id="login-section" class="content-section is-visible">
@@ -232,23 +207,44 @@
             <button id="submitAnswers" class="btn" style="display: none;">Enviar Respostas</button>
             <p id="result" class="result-message"></p>
             <button id="logout" class="btn btn-danger" style="display:none;">Sair</button>
+
+            <div id="ranking-section" class="ranking-flex" style="display: none;">
+                <div class="ranking-block">
+                    <h2>🏆 Diário</h2>
+                    <table id="daily-ranking" class="ranking-table">
+                        <thead>
+                            <tr><th>#</th><th>Usuário</th><th>Pontos</th></tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="ranking-block">
+                    <h2>🌍 Global</h2>
+                    <table id="global-ranking" class="ranking-table">
+                        <thead>
+                            <tr><th>#</th><th>Usuário</th><th>Pontos</th></tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
     
     <!-- Firebase SDKs -->
     <script type="module">
+        // Importa os módulos necessários do Firebase SDK.
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, orderBy, limit, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // ==========================================================
-        // CONFIGURAÇÃO DO PROJETO FIREBASE (COM CREDENCIAIS SEGURAS)
+        // CONFIGURAÇÃO DO PROJETO FIREBASE (COM SUAS CREDENCIAIS)
+        // Usamos as variáveis globais do ambiente Canvas para configurar o Firebase.
         // ==========================================================
-        // As credenciais de configuração e o token de autenticação são injetados
-        // pelo ambiente de execução por motivos de segurança.
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : '';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         
         // Inicializa o Firebase e seus serviços
         const app = initializeApp(firebaseConfig);
@@ -260,7 +256,7 @@
         // ==========================================================
         let originalWords = [];
         let startTime = null;
-        let attempts = 0; // Variável para contar as tentativas
+        let attempts = 0; // Nova variável para contar as tentativas
 
         // Funções para mostrar/esconder o loading overlay
         function showLoading() {
@@ -270,26 +266,33 @@
         function hideLoading() {
             document.getElementById("loading-overlay").style.display = "none";
         }
+        
+        // Função para exibir mensagens de erro no UI
+        function showMessage(elementId, message, isError = false) {
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.textContent = message;
+                el.style.color = isError ? "#dc2626" : "#10b981"; // Red for error, green for success
+            }
+        }
 
         // Função para mostrar ou esconder seções com a nova classe 'is-visible'
-        function showSection(id, visible) {
+        function showSection(id) {
             const el = document.getElementById(id);
             if (el) {
                 document.querySelectorAll('.content-section').forEach(section => {
                     section.classList.remove('is-visible');
                 });
-                if (visible) {
-                    el.classList.add('is-visible');
-                }
+                el.classList.add('is-visible');
             }
         }
 
         // Funções de UI
         function showGameUI(user) {
-            showSection("game-section", true);
+            showSection("game-section");
             document.getElementById("welcome").textContent = `👋 Bem-vindo, ${user}!`;
             document.getElementById("logout").style.display = "block";
-            // O ranking agora é carregado no onAuthStateChanged para estar sempre visível.
+            loadRanking();
         }
 
         function showDailyBlockForUser() {
@@ -333,23 +336,34 @@
         // LÓGICA DE AUTENTICAÇÃO E FIRESTORE
         // ==========================================================
 
-        // Ouve o estado de autenticação para carregar a UI correta
+        // Listener global para o estado de autenticação
         onAuthStateChanged(auth, async (user) => {
             hideLoading();
             if (user) {
+                // Usuário logado
                 try {
-                    const userRef = doc(db, "users", user.uid);
-                    const docSnap = await getDoc(userRef);
-                    let username = user.email ? user.email.split('@')[0] : 'Usuário';
+                    // Obtém os dados do usuário da coleção privada
+                    const userDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'private', 'userData');
+                    const docSnap = await getDoc(userDocRef);
+                    let username = user.email ? user.email.split('@')[0] : "Usuário";
 
                     if (docSnap.exists()) {
                         username = docSnap.data().username || username;
+                    } else {
+                        // Se o documento do usuário não existir (novo registro), cria um.
+                        await setDoc(userDocRef, {
+                            username: username,
+                            email: user.email,
+                            createdAt: new Date(),
+                            totalPoints: 0
+                        });
                     }
-                    
+
                     showGameUI(username);
                     
+                    // Verifica se o usuário já jogou hoje
                     const today = new Date().toISOString().split('T')[0];
-                    const gameRef = doc(db, "games", `${user.uid}-${today}`);
+                    const gameRef = doc(db, 'artifacts', appId, 'public', 'data', 'ranking', `${user.uid}-${today}`);
                     const gameSnap = await getDoc(gameRef);
 
                     if (gameSnap.exists()) {
@@ -360,45 +374,42 @@
 
                 } catch (error) {
                     console.error("Erro ao carregar dados do usuário:", error);
-                    const errorMessageDiv = document.createElement('div');
-                    errorMessageDiv.textContent = 'Ocorreu um erro ao carregar seus dados.';
-                    errorMessageDiv.style.color = 'red';
-                    document.getElementById('appContainer').appendChild(errorMessageDiv);
+                    showMessage('appContainer', 'Ocorreu um erro ao carregar seus dados.', true);
                 }
+
             } else {
-                showSection("login-section", true);
+                // Nenhum usuário logado
+                showSection("login-section");
             }
-            loadRanking();
         });
-        
-        // Autentica com o token fornecido ou de forma anônima
-        async function authenticateUser() {
+
+        // Tenta fazer login com o token personalizado do ambiente.
+        // Se falhar (por exemplo, token expirado), tenta o login anônimo.
+        async function signInWithTokenOrAnonymously() {
             showLoading();
             try {
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
+                if (authToken) {
+                    await signInWithCustomToken(auth, authToken);
                 } else {
                     await signInAnonymously(auth);
                 }
             } catch (error) {
-                console.error("Authentication error:", error);
+                console.error("Erro ao tentar login automático:", error);
+                await signInAnonymously(auth);
             } finally {
                 hideLoading();
             }
         }
-        authenticateUser();
 
         // Lógica para alternar entre as telas de login e registro
         document.getElementById("goRegister").addEventListener("click", (e) => {
             e.preventDefault();
-            showSection("login-section", false);
-            showSection("register-section", true);
+            showSection("register-section");
         });
 
         document.getElementById("goLogin").addEventListener("click", (e) => {
             e.preventDefault();
-            showSection("register-section", false);
-            showSection("login-section", true);
+            showSection("login-section");
         });
 
         // Lógica do botão de registro
@@ -406,24 +417,29 @@
             e.preventDefault();
             const email = document.getElementById("register-email").value.trim();
             const password = document.getElementById("register-password").value;
-            const registerMsg = document.getElementById("registerMsg");
             
             if (!email || !password) {
-                registerMsg.textContent = "E-mail e senha obrigatórios.";
+                showMessage('registerMsg', "E-mail e senha obrigatórios.", true);
                 return;
             }
             
             showLoading();
             try {
+                // Cria o usuário no Firebase Authentication
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
-                await setDoc(doc(db, "users", user.uid), {
-                    username: email.split('@')[0],
+
+                // Salva o documento do usuário no Firestore (coleção privada)
+                const userDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'private', 'userData');
+                await setDoc(userDocRef, {
+                    username: email.split('@')[0], // Nome de usuário padrão
                     email: user.email,
                     createdAt: new Date(),
                     totalPoints: 0
                 });
-                registerMsg.textContent = "Registro e login realizados com sucesso!";
+
+                showMessage('registerMsg', "Registro e login realizados com sucesso!");
+                // onAuthStateChanged irá lidar com a transição de tela.
             } catch (error) {
                 console.error("Erro de registro:", error);
                 let errorMessage = "Erro ao registrar. Tente novamente.";
@@ -432,7 +448,7 @@
                 } else if (error.code === 'auth/weak-password') {
                     errorMessage = 'A senha deve ter pelo menos 6 caracteres.';
                 }
-                registerMsg.textContent = errorMessage;
+                showMessage('registerMsg', errorMessage, true);
             } finally {
                 hideLoading();
             }
@@ -443,24 +459,25 @@
             e.preventDefault();
             const email = document.getElementById("login-email").value.trim();
             const password = document.getElementById("login-password").value;
-            const loginMsg = document.getElementById("loginMsg");
             
             if (!email || !password) {
-                loginMsg.textContent = "E-mail e senha obrigatórios.";
+                showMessage('loginMsg', "E-mail e senha obrigatórios.", true);
                 return;
             }
 
             showLoading();
             try {
+                // Faz login do usuário no Firebase
                 await signInWithEmailAndPassword(auth, email, password);
-                loginMsg.textContent = "Login realizado com sucesso!";
+                showMessage('loginMsg', "Login realizado com sucesso!");
+                // onAuthStateChanged irá lidar com a transição de tela.
             } catch (error) {
                 console.error("Erro de login:", error);
                 let errorMessage = "E-mail ou senha inválidos. Tente novamente.";
                 if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                    errorMessage = 'E-mail ou senha inválidos. Tente novamente.';
+                    errorMessage = 'E-mail ou senha inválidos.';
                 }
-                loginMsg.textContent = errorMessage;
+                showMessage('loginMsg', errorMessage, true);
             } finally {
                 hideLoading();
             }
@@ -471,12 +488,10 @@
             showLoading();
             try {
                 await signOut(auth);
+                // onAuthStateChanged irá redirecionar para a tela de login.
             } catch (error) {
                 console.error("Erro ao sair:", error);
-                const errorMessageDiv = document.createElement('div');
-                errorMessageDiv.textContent = 'Erro ao tentar sair.';
-                errorMessageDiv.style.color = 'red';
-                document.getElementById('appContainer').appendChild(errorMessageDiv);
+                showMessage('appContainer', 'Erro ao tentar sair.', true);
             } finally {
                 hideLoading();
             }
@@ -531,12 +546,12 @@
         // Carregar Desafio
         document.getElementById("loadChallenge").addEventListener("click", async () => {
             const user = auth.currentUser;
-            if (!user) return; 
+            if (!user) return; // Garante que há um usuário logado
         
             showLoading();
             try {
                 const today = new Date().toISOString().split('T')[0];
-                const challengeRef = doc(db, "desafios", today);
+                const challengeRef = doc(db, 'artifacts', appId, 'public', 'data', 'desafios', today);
                 const challengeSnap = await getDoc(challengeRef);
         
                 if (challengeSnap.exists()) {
@@ -599,7 +614,7 @@
                     clearDailyBlockUI();
                     document.getElementById("result").textContent = "";
                     startTime = Date.now();
-                    attempts = 0; 
+                    attempts = 0;
         
                 } else {
                     document.getElementById("theme").textContent = "Nenhum desafio encontrado para hoje.";
@@ -608,10 +623,7 @@
         
             } catch (err) {
                 console.error("Erro ao carregar desafio:", err);
-                const errorMessageDiv = document.createElement('div');
-                errorMessageDiv.textContent = 'Erro ao carregar desafio do dia.';
-                errorMessageDiv.style.color = 'red';
-                document.getElementById('appContainer').appendChild(errorMessageDiv);
+                showMessage('appContainer', 'Erro ao carregar desafio do dia.', true);
             } finally {
                 hideLoading();
             }
@@ -643,16 +655,16 @@
                 inputs.forEach(input => {
                     input.classList.remove('bg-green-200', 'bg-red-200');
                     if (isWordCorrect) {
-                        input.classList.add('bg-green-200'); 
+                        input.classList.add('bg-green-200'); // Tailwind class for correct
                     } else {
-                        input.classList.add('bg-red-200'); 
+                        input.classList.add('bg-red-200'); // Tailwind class for wrong
                     }
                 });
             });
             
             const resultMsg = document.getElementById("result");
             const isCorrect = (correctCount === originalWords.length);
-            
+        
             if (isCorrect) {
                 resultMsg.textContent = "🎉 Parabéns! Você acertou todas!";
                 resultMsg.style.color = "#10b981";
@@ -661,16 +673,20 @@
                 const points = calculatePoints(answerTime, attempts);
 
                 try {
-                    const userDocRef = doc(db, "users", user.uid);
+                    // Pega o username e totalPoints do documento do usuário
+                    const userDocRef = doc(db, 'artifacts', appId, 'users', user.uid, 'private', 'userData');
                     const userSnap = await getDoc(userDocRef);
-                    let username = user.email.split('@')[0];
+                    let username = user.email ? user.email.split('@')[0] : "Usuário";
                     let totalPoints = 0;
                     if (userSnap.exists()) {
-                        username = userSnap.data().username || username;
-                        totalPoints = userSnap.data().totalPoints || 0;
+                        const userData = userSnap.data();
+                        username = userData.username || username;
+                        totalPoints = userData.totalPoints || 0;
                     }
                     
-                    await addDoc(collection(db, "ranking"), {
+                    // Salva a pontuação na coleção de ranking diário (pública)
+                    const rankingDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'ranking', `${user.uid}-${new Date().toISOString().split('T')[0]}`);
+                    await setDoc(rankingDocRef, {
                         userId: user.uid,
                         username: username,
                         answerTime: answerTime,
@@ -678,36 +694,33 @@
                         attempts: attempts,
                         points: points,
                         timestamp: new Date()
-                    });
+                    }, { merge: true });
 
-                    await setDoc(userDocRef, { totalPoints: totalPoints + points, lastPlayed: new Date().toISOString().split('T')[0] }, { merge: true });
+                    // Atualiza a pontuação total na coleção de usuário (privada)
+                    await setDoc(userDocRef, { totalPoints: totalPoints + points }, { merge: true });
 
                     showWinMessage();
-                    loadRanking(); 
-                
+                    loadRanking(); // Recarrega o ranking após o envio do resultado
+        
                 } catch (err) {
                     console.error("Erro ao salvar resultado no Firestore:", err);
-                    resultMsg.textContent = "Erro ao salvar seu resultado. Tente novamente.";
+                    showMessage('result', "Erro ao salvar seu resultado. Tente novamente.", true);
                 }
             } else {
-                resultMsg.textContent = `Você acertou ${correctCount} de ${originalWords.length}. Tente novamente.`;
-                resultMsg.style.color = "#FFB300";
+                showMessage('result', `Você acertou ${correctCount} de ${originalWords.length}. Tente novamente.`, false);
+                resultMsg.style.color = "#FFB300"; // Usando uma cor para 'aviso'
             }
             
             hideLoading();
         });
         
-        // Função para carregar e renderizar os rankings
+        // Carregar Ranking
         async function loadRanking() {
             showLoading();
             try {
                 // Lógica de Ranking Diário
                 const today = new Date().toISOString().split('T')[0];
-                const dailyGamesQuery = query(
-                    collection(db, "ranking"), 
-                    where("challengeDate", "==", today), 
-                    orderBy("points", "desc")
-                );
+                const dailyGamesQuery = query(collection(db, 'artifacts', appId, 'public', 'data', 'ranking'), where("challengeDate", "==", today), orderBy("points", "desc"));
                 const dailySnapshot = await getDocs(dailyGamesQuery);
                 const dailyData = dailySnapshot.docs.map(doc => doc.data());
                 
@@ -720,14 +733,10 @@
                 });
         
                 // Lógica de Ranking Global
-                const overallUsersQuery = query(
-                    collection(db, "users"), 
-                    orderBy("totalPoints", "desc"), 
-                    limit(10)
-                );
+                const overallUsersQuery = query(collection(db, 'artifacts', appId, 'users', user.uid, 'private'), orderBy("totalPoints", "desc"), limit(10));
                 const overallSnapshot = await getDocs(overallUsersQuery);
                 const overallData = overallSnapshot.docs.map(doc => doc.data());
-
+        
                 const globalBody = document.querySelector("#global-ranking tbody");
                 globalBody.innerHTML = "";
                 overallData.forEach((row, idx) => {
@@ -735,16 +744,20 @@
                         <td>${idx + 1}</td><td>${row.username}</td><td>${row.totalPoints}</td>
                     </tr>`;
                 });
-
-                // Mostra as tabelas
+                
                 document.getElementById("ranking-section").style.display = "flex";
         
             } catch (err) {
                 console.error("Erro ao carregar ranking:", err);
+                showMessage('appContainer', 'Erro ao carregar ranking.', true);
             } finally {
                 hideLoading();
             }
         }
+
+        // Tenta fazer o login automático ao carregar a página
+        signInWithTokenOrAnonymously();
+
     </script>
 </body>
 </html>
