@@ -8,43 +8,52 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- O CSS otimizado deve ser referenciado aqui -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- O overlay de loading agora é controlado por uma classe 'is-visible' -->
     <div id="loading-overlay" class="loading-overlay">
         <div class="spinner"></div>
     </div>
 
-    <div class="container" id="appContainer">
+    <!-- Usando a tag <main> para melhor semântica -->
+    <main class="container" id="appContainer">
 
         <div class="game-intro">
             <h1 class="main-title">ENCRYPTA</h1>
             <p>O jogo diário de palavras criptografadas</p>
         </div>
 
-        <div id="login-section" class="content-section is-visible">
-            <h2>Entrar</h2>
-            <input type="text" id="login-email" placeholder="E-mail" />
-            <input type="password" id="login-password" placeholder="Senha" />
-            <button class="btn" id="btnLogin">Entrar</button>
-            <p>Ainda não tem conta? <a href="#" id="goRegister">Registrar</a></p>
-            <p id="loginMsg" class="result-message"></p>
-        </div>
+        <!-- Seção de Login com a tag <form> -->
+        <section id="login-section" class="content-section is-visible">
+            <form>
+                <h2>Entrar</h2>
+                <input type="email" id="login-email" placeholder="E-mail" required />
+                <input type="password" id="login-password" placeholder="Senha" required />
+                <button class="btn" id="btnLogin">Entrar</button>
+                <p>Ainda não tem conta? <a href="#" id="goRegister">Registrar</a></p>
+                <p id="loginMsg" class="result-message"></p>
+            </form>
+        </section>
 
-        <div id="register-section" class="content-section">
-            <h2>Registrar</h2>
-            <input type="text" id="register-email" placeholder="E-mail" />
-            <input type="password" id="register-password" placeholder="Senha" />
-            <button class="btn" id="btnRegister">Criar Conta</button>
-            <p>Já tem conta? <a href="#" id="goLogin">Login</a></p>
-            <p id="registerMsg" class="result-message"></p>
-        </div>
+        <!-- Seção de Registro com a tag <form> -->
+        <section id="register-section" class="content-section">
+            <form>
+                <h2>Registrar</h2>
+                <input type="email" id="register-email" placeholder="E-mail" required />
+                <input type="password" id="register-password" placeholder="Senha" required />
+                <button class="btn" id="btnRegister">Criar Conta</button>
+                <p>Já tem conta? <a href="#" id="goLogin">Login</a></p>
+                <p id="registerMsg" class="result-message"></p>
+            </form>
+        </section>
 
-        <div id="game-section" class="content-section">
+        <section id="game-section" class="content-section">
             <h1 class="main-title">ENCRYPTA – Desafio Diário</h1>
             <p id="welcome" class="welcome-message"></p>
 
-            <div id="alreadyPlayedMsg" class="already-played-msg" style="display:none;">
+            <div id="alreadyPlayedMsg" class="already-played-msg">
                 ⚠️ Você já completou o desafio de hoje. Volte amanhã.
             </div>
 
@@ -67,7 +76,8 @@
             <p id="result" class="result-message"></p>
             <button id="logout" class="btn btn-danger" style="display:none;">Sair</button>
 
-            <div id="ranking-section" class="ranking-flex" style="display: none;">
+            <!-- Renomeado para 'ranking-grid' para maior clareza -->
+            <div id="ranking-section" class="ranking-grid" style="display: none;">
                 <div class="ranking-block">
                     <h2>🏆 Diário</h2>
                     <table id="daily-ranking" class="ranking-table">
@@ -87,8 +97,8 @@
                     </table>
                 </div>
             </div>
-        </div>
-    </div>
+        </section>
+    </main>
     
     <!-- Firebase SDKs -->
     <script type="module">
@@ -118,18 +128,19 @@
         // ==========================================================
         let originalWords = [];
         let startTime = null;
-        let attempts = 0; // Nova variável para contar as tentativas
+        let attempts = 0;
 
-        // Funções para mostrar/esconder o loading overlay
+        // SUGESTÃO: Modifique as funções de loading para usar classes CSS
+        // Isso centraliza o controle de visibilidade no CSS e é uma prática melhor.
+        const loadingOverlay = document.getElementById("loading-overlay");
         function showLoading() {
-            document.getElementById("loading-overlay").style.display = "flex";
+            loadingOverlay.classList.add("is-visible");
         }
-
         function hideLoading() {
-            document.getElementById("loading-overlay").style.display = "none";
+            loadingOverlay.classList.remove("is-visible");
         }
 
-        // Função para mostrar ou esconder seções com a nova classe 'is-visible'
+        // Função para mostrar ou esconder seções
         function showSection(id, visible) {
             const el = document.getElementById(id);
             if (el) {
@@ -195,7 +206,6 @@
         onAuthStateChanged(auth, async (user) => {
             hideLoading();
             if (user) {
-                // Usuário logado
                 try {
                     const docRef = doc(db, "users", user.uid);
                     const docSnap = await getDoc(docRef);
@@ -207,7 +217,6 @@
 
                     showGameUI(username);
                     
-                    // Verifica se o usuário já jogou hoje
                     const today = new Date().toISOString().split('T')[0];
                     const gameRef = doc(db, "games", `${user.uid}-${today}`);
                     const gameSnap = await getDoc(gameRef);
@@ -220,7 +229,6 @@
 
                 } catch (error) {
                     console.error("Erro ao carregar dados do usuário:", error);
-                    // Usando um modal/div customizado em vez de alert()
                     const errorMessageDiv = document.createElement('div');
                     errorMessageDiv.textContent = 'Ocorreu um erro ao carregar seus dados.';
                     errorMessageDiv.style.color = 'red';
@@ -228,7 +236,6 @@
                 }
 
             } else {
-                // Nenhum usuário logado
                 showSection("login-section", true);
             }
         });
@@ -260,20 +267,17 @@
             
             showLoading();
             try {
-                // Cria o usuário no Firebase Authentication
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
 
-                // Salva o documento do usuário no Firestore
                 await setDoc(doc(db, "users", user.uid), {
-                    username: email.split('@')[0], // Nome de usuário padrão
+                    username: email.split('@')[0],
                     email: user.email,
                     createdAt: new Date(),
-                    totalPoints: 0 // Novo campo para o ranking global
+                    totalPoints: 0
                 });
 
                 registerMsg.textContent = "Registro e login realizados com sucesso!";
-                // onAuthStateChanged irá lidar com a transição de tela.
 
             } catch (error) {
                 console.error("Erro de registro:", error);
@@ -303,10 +307,8 @@
 
             showLoading();
             try {
-                // Faz login do usuário no Firebase
                 await signInWithEmailAndPassword(auth, email, password);
                 loginMsg.textContent = "Login realizado com sucesso!";
-                // onAuthStateChanged irá lidar com a transição de tela.
 
             } catch (error) {
                 console.error("Erro de login:", error);
@@ -327,10 +329,8 @@
             showLoading();
             try {
                 await signOut(auth);
-                // onAuthStateChanged irá redirecionar para a tela de login.
             } catch (error) {
                 console.error("Erro ao sair:", error);
-                // Usando um modal/div customizado em vez de alert()
                 const errorMessageDiv = document.createElement('div');
                 errorMessageDiv.textContent = 'Erro ao tentar sair.';
                 errorMessageDiv.style.color = 'red';
@@ -362,7 +362,7 @@
                     if (index !== -1) {
                         encrypted += cipher[index];
                     } else {
-                        encrypted += char; // Mantém caracteres que não são letras
+                        encrypted += char;
                     }
                 } else {
                     encrypted += char;
@@ -371,33 +371,22 @@
             return encrypted;
         }
 
-        // Nova função para calcular a pontuação
+        // Função para calcular a pontuação
         function calculatePoints(answerTime, attempts) {
-            // A pontuação base é 1000.
-            // Penalidade por tempo: 5 pontos por segundo.
-            // Penalidade por tentativas: 50 pontos por tentativa.
             const basePoints = 1000;
             const timePenalty = answerTime * 5;
-            const attemptsPenalty = (attempts - 1) * 50; // A primeira tentativa não penaliza
-            
+            const attemptsPenalty = (attempts - 1) * 50;
             let points = basePoints - timePenalty - attemptsPenalty;
-            
-            // Garante que a pontuação não seja menor que 100
-            if (points < 100) {
-                points = 100;
-            }
-            
-            return points;
+            return Math.max(100, points); // Garante que a pontuação mínima seja 100
         }
 
         // Carregar Desafio
         document.getElementById("loadChallenge").addEventListener("click", async () => {
             const user = auth.currentUser;
-            if (!user) return; // Garante que há um usuário logado
+            if (!user) return;
         
             showLoading();
             try {
-                // Monta o nome do documento do dia no formato YYYY-MM-DD
                 const today = new Date().toISOString().split('T')[0];
                 const challengeRef = doc(db, "desafios", today);
                 const challengeSnap = await getDoc(challengeRef);
@@ -411,44 +400,42 @@
                     ];
                     const cipher = challengeData.cipher_alpha;
                     
-                    // Criptografa as palavras para exibir
                     const cipheredWords = words.map(word => encryptWord(word, cipher));
-                    originalWords = words; // Salva as palavras originais para verificação posterior
+                    originalWords = words;
         
                     document.getElementById("theme").textContent = `Tema: ${challengeData.theme || "Sem tema"}`;
                     const challengeDiv = document.getElementById("challenge");
                     challengeDiv.innerHTML = "";
                     cipheredWords.forEach((word, wordIndex) => {
                         const wordDiv = document.createElement("div");
-                        wordDiv.classList.add("challenge-word", "flex", "flex-col", "items-center", "gap-2");
+                        // As classes de layout agora estão no CSS, o HTML/JS fica mais limpo.
+                        wordDiv.className = "challenge-word";
                         
                         const encryptedDisplay = word.split('').join(' ');
-                        wordDiv.innerHTML = `<p class="text-lg font-mono tracking-widest">${encryptedDisplay}</p>`;
+                        wordDiv.innerHTML = `<p class="encrypted-text">${encryptedDisplay}</p>`;
         
                         const inputContainer = document.createElement("div");
-                        inputContainer.classList.add("input-container", "flex", "gap-1");
+                        inputContainer.className = "input-container";
                         
                         for (let i = 0; i < word.length; i++) {
                             const input = document.createElement("input");
                             input.type = "text";
                             input.maxLength = "1";
-                            input.classList.add("letter-input", "w-8", "h-8", "text-center", "font-bold", "uppercase", "border-2", "border-gray-300", "rounded-md", "focus:outline-none", "focus:border-indigo-500", "transition-colors");
+                            // NOTA: As classes de tamanho do Tailwind (w-8, h-8) foram sobrepostas no CSS
+                            // para permitir um layout mais responsivo com clamp().
+                            input.className = "letter-input w-8 h-8";
                             input.setAttribute("data-word-index", wordIndex);
                             input.setAttribute("data-letter-index", i);
                             input.addEventListener("input", (e) => {
                                 if (e.target.value) {
                                     const nextInput = document.querySelector(`[data-word-index="${wordIndex}"][data-letter-index="${i + 1}"]`);
-                                    if (nextInput) {
-                                        nextInput.focus();
-                                    }
+                                    if (nextInput) nextInput.focus();
                                 }
                             });
                             input.addEventListener("keydown", (e) => {
                                 if (e.key === "Backspace" && !e.target.value) {
                                     const prevInput = document.querySelector(`[data-word-index="${wordIndex}"][data-letter-index="${i - 1}"]`);
-                                    if (prevInput) {
-                                        prevInput.focus();
-                                    }
+                                    if (prevInput) prevInput.focus();
                                 }
                             });
                             inputContainer.appendChild(input);
@@ -463,7 +450,7 @@
                     clearDailyBlockUI();
                     document.getElementById("result").textContent = "";
                     startTime = Date.now();
-                    attempts = 0; // Reinicia a contagem de tentativas
+                    attempts = 0;
         
                 } else {
                     document.getElementById("theme").textContent = "Nenhum desafio encontrado para hoje.";
@@ -472,7 +459,6 @@
         
             } catch (err) {
                 console.error("Erro ao carregar desafio:", err);
-                // Usando um modal/div customizado em vez de alert()
                 const errorMessageDiv = document.createElement('div');
                 errorMessageDiv.textContent = 'Erro ao carregar desafio do dia.';
                 errorMessageDiv.style.color = 'red';
@@ -489,7 +475,6 @@
 
             showLoading();
             
-            // Incrementa o número de tentativas
             attempts++;
             
             let correctCount = 0;
@@ -509,9 +494,9 @@
                 inputs.forEach(input => {
                     input.classList.remove('bg-green-200', 'bg-red-200');
                     if (isWordCorrect) {
-                        input.classList.add('bg-green-200'); // Tailwind class for correct
+                        input.classList.add('bg-green-200');
                     } else {
-                        input.classList.add('bg-red-200'); // Tailwind class for wrong
+                        input.classList.add('bg-red-200');
                     }
                 });
             });
@@ -527,7 +512,6 @@
                 const points = calculatePoints(answerTime, attempts);
 
                 try {
-                    // Pega o username do documento do usuário
                     const userDocRef = doc(db, "users", user.uid);
                     const userSnap = await getDoc(userDocRef);
                     let username = user.email.split('@')[0];
@@ -537,7 +521,6 @@
                         totalPoints = userSnap.data().totalPoints || 0;
                     }
                     
-                    // Salva a pontuação na coleção "ranking" para o ranking diário
                     await addDoc(collection(db, "ranking"), {
                         userId: user.uid,
                         username: username,
@@ -548,11 +531,10 @@
                         timestamp: new Date()
                     });
 
-                    // Atualiza a pontuação total na coleção "users" para o ranking global
                     await setDoc(userDocRef, { totalPoints: totalPoints + points, lastPlayed: new Date().toISOString().split('T')[0] }, { merge: true });
 
                     showWinMessage();
-                    loadRanking(); // Recarrega o ranking após o envio do resultado
+                    loadRanking();
         
                 } catch (err) {
                     console.error("Erro ao salvar resultado no Firestore:", err);
@@ -570,7 +552,7 @@
         async function loadRanking() {
             showLoading();
             try {
-                // Lógica de Ranking Diário
+                // Ranking Diário
                 const today = new Date().toISOString().split('T')[0];
                 const dailyGamesQuery = query(collection(db, "ranking"), where("challengeDate", "==", today), orderBy("points", "desc"));
                 const dailySnapshot = await getDocs(dailyGamesQuery);
@@ -584,7 +566,7 @@
                     </tr>`;
                 });
         
-                // Lógica de Ranking Global
+                // Ranking Global
                 const overallUsersQuery = query(collection(db, "users"), orderBy("totalPoints", "desc"), limit(10));
                 const overallSnapshot = await getDocs(overallUsersQuery);
                 const overallData = overallSnapshot.docs.map(doc => doc.data());
@@ -597,7 +579,7 @@
                     </tr>`;
                 });
                 
-                document.getElementById("ranking-section").style.display = "flex";
+                document.getElementById("ranking-section").style.display = "grid"; // Alterado para grid
         
             } catch (err) {
                 console.error("Erro ao carregar ranking:", err);
