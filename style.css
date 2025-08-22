@@ -5,7 +5,7 @@
 /* - Overlay de loading controlado via classe '.is-visible'.           */
 /* - Conflitos entre Tailwind e CSS local foram resolvidos.            */
 /* - Classes não utilizadas foram removidas.                           */
-/* - Classe '.ranking-flex' renomeada para '.ranking-grid'.            */
+/* - Layout de rankings ajustado para usar Flexbox.                    */
 /* =================================================================== */
 
 /* ==================== */
@@ -44,6 +44,7 @@ body {
     align-items: center;
     min-height: 100vh;
     padding: 20px;
+    transition: background 0.5s ease;
 }
 
 /* ========================= */
@@ -56,8 +57,7 @@ body {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.85);
-    /* A visibilidade agora é controlada pela classe '.is-visible' */
-    display: none; 
+    display: none;
     justify-content: center;
     align-items: center;
     z-index: 1000;
@@ -76,8 +76,8 @@ body {
     border: 4px solid rgba(255, 255, 255, 0.3);
     border-radius: 50%;
     border-top: 4px solid var(--accent-color);
-    width: 50px;
-    height: 50px;
+    width: 40px; /* Ajustado para a versão antiga */
+    height: 40px; /* Ajustado para a versão antiga */
     animation: spin 1s linear infinite;
 }
 
@@ -97,11 +97,16 @@ body {
     border-radius: var(--border-radius-main);
     box-shadow: 0 8px 30px var(--shadow);
     text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.container.already-played {
+    border: 2px solid rgba(229, 83, 83, 0.25);
 }
 
 .already-played-msg {
     margin: 20px auto;
-    padding: 16px;
+    padding: 12px 16px; /* Ajustado para a versão antiga */
     border-radius: 8px;
     background: #3a1f1f;
     color: #FF6B6B;
@@ -119,20 +124,21 @@ body {
     display: none;
     flex-direction: column;
     align-items: center;
-    gap: 1rem; /* Adiciona espaçamento entre os filhos */
+    /* gap: 1rem; Removido para corresponder ao código antigo */
     animation: fadeIn 0.5s ease-out forwards;
 }
 
 .content-section.is-visible {
-    display: flex; /* Alterado para flex para alinhar o conteúdo interno */
+    display: flex;
 }
 
 /* Título e descrição */
 .game-intro {
-    margin-bottom: 1rem;
+    margin-bottom: 2rem; /* Ajustado para a versão antiga */
 }
 
 .main-title {
+    margin: 0; /* Ajustado para a versão antiga */
     font-size: clamp(2rem, 5vw, 2.5rem);
     font-weight: 700;
     color: var(--primary-color);
@@ -160,10 +166,10 @@ body {
 }
 
 input {
-    width: 100%;
+    width: 90%; /* Ajustado para a versão antiga */
     max-width: 400px;
     padding: 14px;
-    margin: 0; /* Margem removida para ser controlada pelo gap do flex container */
+    margin: 12px 0; /* Ajustado para a versão antiga */
     border-radius: 8px;
     border: 1px solid var(--border-color);
     font-size: 16px;
@@ -182,7 +188,7 @@ input:focus {
 /* Botões               */
 /* ==================== */
 .btn {
-    width: 100%;
+    width: 95%; /* Ajustado para a versão antiga */
     max-width: 400px;
     padding: 14px;
     background-color: var(--primary-color);
@@ -192,7 +198,7 @@ input:focus {
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    margin-top: 10px; /* Margem ajustada */
+    margin-top: 20px; /* Ajustado para a versão antiga */
     transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
     box-shadow: 0 4px 15px rgba(30, 136, 229, 0.2);
 }
@@ -207,6 +213,16 @@ input:focus {
     background-color: #666;
     cursor: not-allowed;
     box-shadow: none;
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+    box-shadow: 0 4px 15px rgba(67, 160, 71, 0.2);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background-color: var(--secondary-hover);
+    box-shadow: 0 6px 20px rgba(67, 160, 71, 0.3);
 }
 
 .btn-danger {
@@ -245,7 +261,7 @@ a:hover {
     border-radius: 10px;
     padding: 20px;
     margin: 25px auto;
-    font-size: clamp(0.9rem, 1.5vw, 0.95rem);
+    font-size: 0.95rem; /* Ajustado para a versão antiga */
     line-height: 1.6;
     color: var(--text-color-light);
     text-align: center;
@@ -256,7 +272,7 @@ a:hover {
 .game-instructions em { color: var(--primary-color); }
 
 .theme-text {
-    font-size: clamp(1.2rem, 2.5vw, 1.4rem);
+    font-size: 1.4rem; /* Ajustado para a versão antiga */
     font-weight: 600;
     margin-bottom: 1.5rem;
     color: var(--accent-color);
@@ -268,10 +284,10 @@ a:hover {
 /* Palavras do desafio  */
 /* ==================== */
 .challenge-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
+    display: flex; /* Alterado de grid para flex */
+    flex-wrap: wrap; /* Adicionado para envolver */
     justify-content: center;
+    gap: 20px;
     margin: 20px 0;
 }
 
@@ -279,7 +295,7 @@ a:hover {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
+    flex: 1 1 300px; /* Adicionado para a versão antiga */
     background: #242424;
     padding: 20px;
     border-radius: 10px;
@@ -287,9 +303,9 @@ a:hover {
 }
 
 .encrypted-text {
-    font-family: 'Courier New', Courier, monospace;
-    font-size: clamp(1.5rem, 3vw, 1.8rem);
+    font-size: 1.8rem; /* Ajustado para a versão antiga */
     letter-spacing: 0.2rem;
+    margin-bottom: 0.8rem; /* Adicionado para a versão antiga */
     color: var(--primary-color);
     font-weight: 700;
     overflow-wrap: break-word;
@@ -300,11 +316,11 @@ a:hover {
     display: flex;
     justify-content: center;
     gap: 8px;
+    margin-top: 10px; /* Adicionado para a versão antiga */
     flex-wrap: wrap;
 }
 
 .letter-input {
-    /* Esta regra usa clamp() para ser responsiva e sobrepõe as classes w-8, h-8 do Tailwind */
     width: clamp(35px, 8vw, 40px);
     height: clamp(35px, 8vw, 40px);
     padding: 0;
@@ -329,10 +345,10 @@ a:hover {
 /* Feedback visual      */
 /* ==================== */
 .result-message {
-    margin-top: 10px;
+    margin-top: 20px; /* Ajustado para a versão antiga */
     text-align: center;
-    font-size: clamp(1rem, 3vw, 1.1rem);
-    font-weight: 600;
+    font-size: 18px; /* Ajustado para a versão antiga */
+    font-weight: 700; /* Ajustado para a versão antiga */
     min-height: 24px;
     color: var(--accent-color);
 }
@@ -344,12 +360,18 @@ a:hover {
 /* ==================== */
 /* Rankings             */
 /* ==================== */
-/* Classe renomeada de .ranking-flex para .ranking-grid para clareza */
-.ranking-grid {
-    display: grid; /* Mantido como grid, que é ótimo para este layout */
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+/* Classe renomeada de .ranking-grid para .ranking-flex para clareza */
+.ranking-flex {
+    display: flex; /* Alterado de grid para flex */
     gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
     margin-top: 30px;
+}
+
+.ranking-block {
+    flex: 1 1 45%; /* Adicionado para a versão antiga */
+    min-width: 300px; /* Adicionado para a versão antiga */
 }
 
 .ranking-block h2 {
@@ -375,9 +397,9 @@ a:hover {
     font-size: clamp(0.9rem, 1.5vw, 1rem);
 }
 
-.ranking-table th:first-child, .ranking-table td:first-child {  
-    text-align: center;  
-    width: 40px;  
+.ranking-table th:first-child, .ranking-table td:first-child {
+    text-align: center;
+    width: 40px;
 }
 
 .ranking-table th {
@@ -410,5 +432,13 @@ a:hover {
     .btn {
         font-size: 14px;
         padding: 12px;
+    }
+    .ranking-block {
+        flex: 1 1 100%; /* Adicionado para a versão antiga */
+    }
+    .letter-input {
+        width: 35px;
+        height: 35px;
+        font-size: 1.2rem;
     }
 }
