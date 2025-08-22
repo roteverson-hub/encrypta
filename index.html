@@ -77,7 +77,7 @@
             <button id="logout" class="btn btn-danger" style="display:none;">Sair</button>
 
             <!-- Renomeado para 'ranking-grid' para maior clareza -->
-            <div id="ranking-section" class="ranking-grid" style="display: none;">
+            <div id="ranking-section" class="ranking-flex hidden">
                 <div class="ranking-block">
                     <h2>🏆 Diário</h2>
                     <table id="daily-ranking" class="ranking-table">
@@ -579,7 +579,7 @@
                     </tr>`;
                 });
                 
-                document.getElementById("ranking-section").style.display = "grid"; // Alterado para grid
+                document.getElementById("ranking-section").classList.remove("hidden");
         
             } catch (err) {
                 console.error("Erro ao carregar ranking:", err);
