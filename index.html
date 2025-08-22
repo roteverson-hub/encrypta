@@ -1,146 +1,145 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Encrypta - Desafio Diário</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <style>
-        .flex-container {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-    </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Encrypta - Desafio Diário</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .flex-container {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+    </style>
 </head>
 <body>
-    <div id="loading-overlay" class="loading-overlay">
-        <div class="spinner"></div>
-    </div>
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
 
-    <main class="container" id="appContainer">
+    <main class="container" id="appContainer">
 
-        <div class="game-intro">
-            <h1 class="main-title">ENCRYPTA</h1>
-            <p>O jogo diário de palavras criptografadas</p>
-        </div>
+        <div class="game-intro">
+            <h1 class="main-title">ENCRYPTA</h1>
+            <p>O jogo diário de palavras criptografadas</p>
+        </div>
 
-        <section id="login-section" class="content-section is-visible">
-            <form>
-                <h2>Entrar</h2>
-                <input type="text" id="login-username" placeholder="Nome de Usuário" required />
-                <input type="password" id="login-password" placeholder="Senha" required />
-                <button class="btn" id="btnLogin">Entrar</button>
-            </form>
-            <div class="flex items-center justify-center my-4">
-                <div class="flex-grow border-t border-gray-400"></div>
-                <span class="mx-4 text-gray-500">ou</span>
-                <div class="flex-grow border-t border-gray-400"></div>
-            </div>
-            <button id="btnGoogleLogin" class="btn btn-google">Entrar com Google</button>
-            
-            <p class="mt-4">Ainda não tem conta? <a href="#" id="goRegister">Registrar</a></p>
-            <p><a href="#" id="goForgotPassword">Esqueceu a senha?</a></p>
-            <p id="loginMsg" class="result-message"></p>
-        </section>
+        <section id="login-section" class="content-section is-visible">
+            <form>
+                <h2>Entrar</h2>
+                <input type="text" id="login-username" placeholder="Nome de Usuário" required />
+                <input type="password" id="login-password" placeholder="Senha" required />
+                <button class="btn" id="btnLogin">Entrar</button>
+            </form>
+            <div class="flex items-center justify-center my-4">
+                <div class="flex-grow border-t border-gray-400"></div>
+                <span class="mx-4 text-gray-500">ou</span>
+                <div class="flex-grow border-t border-gray-400"></div>
+            </div>
+            <button id="btnGoogleLogin" class="btn btn-google">Entrar com Google</button>
+            
+            <p class="mt-4">Ainda não tem conta? <a href="#" id="goRegister">Registrar</a></p>
+            <p><a href="#" id="goForgotPassword">Esqueceu a senha?</a></p>
+            <p id="loginMsg" class="result-message"></p>
+        </section>
 
-        <section id="register-section" class="content-section">
-            <form>
-                <h2>Registrar</h2>
-                <input type="email" id="register-email" placeholder="E-mail" required />
-                <input type="text" id="register-username" placeholder="Nome de Usuário" required />
-                <input type="password" id="register-password" placeholder="Senha" required />
-                <button class="btn" id="btnRegister">Criar Conta</button>
-                <p>Já tem conta? <a href="#" id="goLogin">Login</a></p>
-                <p id="registerMsg" class="result-message"></p>
-            </form>
-        </section>
+        <section id="register-section" class="content-section">
+            <form>
+                <h2>Registrar</h2>
+                <input type="email" id="register-email" placeholder="E-mail" required />
+                <input type="text" id="register-username" placeholder="Nome de Usuário" required />
+                <input type="password" id="register-password" placeholder="Senha" required />
+                <button class="btn" id="btnRegister">Criar Conta</button>
+                <p>Já tem conta? <a href="#" id="goLogin">Login</a></p>
+                <p id="registerMsg" class="result-message"></p>
+            </form>
+        </section>
 
-        <section id="username-section" class="content-section">
-            <div class="content-block">
-                <h2>Escolha seu nome de usuário</h2>
-                <p>Parece que é seu primeiro login.</p>
-                <p>Por favor, escolha um nome de usuário para aparecer no ranking.</p>
-                <input type="text" id="username-input" placeholder="Nome de usuário" required />
-                <button class="btn" id="btnSaveUsername">Salvar nome de usuário</button>
-                <p id="usernameMsg" class="result-message"></p>
-            </div>
-        </section>
+        <section id="username-section" class="content-section">
+            <div class="content-block">
+                <h2>Escolha seu nome de usuário</h2>
+                                <p>Parece que é seu primeiro login. Por favor, escolha um nome de usuário para aparecer no ranking.</p>
+                                <input type="text" id="username-input" placeholder="Nome de usuário" required class="mt-4" />
+                <button class="btn" id="btnSaveUsername">Salvar nome de usuário</button>
+                <p id="usernameMsg" class="result-message"></p>
+            </div>
+        </section>
 
-        <section id="forgot-password-section" class="content-section">
-            <form>
-                <h2>Recuperar Senha</h2>
-                <p>Informe o e-mail de cadastro para receber o link de recuperação de senha.</p>
-                <input type="email" id="forgot-password-email" placeholder="E-mail" required />
-                <button class="btn" id="btnForgotPassword">Enviar Link</button>
-                <p><a href="#" id="goLoginFromForgotPassword">Voltar para o Login</a></p>
-                <p id="forgotPasswordMsg" class="result-message"></p>
-            </form>
-        </section>
+        <section id="forgot-password-section" class="content-section">
+            <form>
+                <h2>Recuperar Senha</h2>
+                <p>Informe o e-mail de cadastro para receber o link de recuperação de senha.</p>
+                <input type="email" id="forgot-password-email" placeholder="E-mail" required />
+                <button class="btn" id="btnForgotPassword">Enviar Link</button>
+                <p><a href="#" id="goLoginFromForgotPassword">Voltar para o Login</a></p>
+                <p id="forgotPasswordMsg" class="result-message"></p>
+            </form>
+        </section>
 
-        <section id="game-section" class="content-section">
-            <h1 class="main-title">ENCRYPTA – Desafio Diário</h1>
-            <p id="welcome" class="welcome-message"></p>
+        <section id="game-section" class="content-section">
+            <h1 class="main-title">ENCRYPTA – Desafio Diário</h1>
+            <p id="welcome" class="welcome-message"></p>
 
-            <div id="alreadyPlayedMsg" class="already-played-msg">
-                ⚠️ Você já completou o desafio de hoje. Volte amanhã.
-            </div>
+            <div id="alreadyPlayedMsg" class="already-played-msg">
+                ⚠️ Você já completou o desafio de hoje. Volte amanhã.
+            </div>
 
-            <div id="instructions" class="game-instructions">
-                <p>
-                    Todos os dias, um novo desafio com <strong>um tema e 3 palavras criptografadas</strong> é liberado.<br /> 
-                    Sua missão é decifrar as palavras, revelando o seu conteúdo original.<br />
-                    A criptografia, ou seja, a substituição de letras, é a mesma para todas as 3 palavras.<br />
-                    Quanto menos tentativas e mais rápido concluir, <strong>maior a sua pontuação</strong>.<br />
-                    Existe a opção de revelar uma dica, mas isso reduzirá sua pontuação final<br />
-                </p>
-                <p>
-                    <em>Exemplo:</em> <strong>"LUA" → "QZE"</strong>; <strong>"SOL" → "XAQ"</strong>; <strong>"ESTRELA" → "TBNMTQE"</strong>
-                </p>
-            </div>
+            <div id="instructions" class="game-instructions">
+                <p>
+                    Todos os dias, um novo desafio com <strong>um tema e 3 palavras criptografadas</strong> é liberado.<br /> 
+                    Sua missão é decifrar as palavras, revelando o seu conteúdo original.<br />
+                    A criptografia, ou seja, a substituição de letras, é a mesma para todas as 3 palavras.<br />
+                    Quanto menos tentativas e mais rápido concluir, <strong>maior a sua pontuação</strong>.<br />
+                    Existe a opção de revelar uma dica, mas isso reduzirá sua pontuação final<br />
+                </p>
+                <p>
+                    <em>Exemplo:</em> <strong>"LUA" → "QZE"</strong>; <strong>"SOL" → "XAQ"</strong>; <strong>"ESTRELA" → "TBNMTQE"</strong>
+                </p>
+            </div>
 
-            <p id="theme" class="theme-text"></p>
-            <p id="hintDisplay" class="hint-text"></p>
+            <p id="theme" class="theme-text"></p>
+            <p id="hintDisplay" class="hint-text"></p>
 
-            <div id="challenge" class="challenge-container"></div>
-            <button id="loadChallenge" class="btn">Carregar Desafio do Dia</button>
-            
-            <div class="flex-container">
-                <button id="submitAnswers" class="btn" style="display: none;">Enviar Respostas</button>
-                <button id="showHintBtn" class="btn btn-warning" style="display: none;">Dica</button>
-            </div>
+            <div id="challenge" class="challenge-container"></div>
+            <button id="loadChallenge" class="btn">Carregar Desafio do Dia</button>
+            
+            <div class="flex-container">
+                <button id="submitAnswers" class="btn" style="display: none;">Enviar Respostas</button>
+                <button id="showHintBtn" class="btn btn-warning" style="display: none;">Dica</button>
+            </div>
 
-            <p id="result" class="result-message"></p>
-            <button id="logout" class="btn btn-danger" style="display:none;">Sair</button>
+            <p id="result" class="result-message"></p>
+            <button id="logout" class="btn btn-danger" style="display:none;">Sair</button>
 
-            <div id="ranking-section" class="ranking-flex hidden">
-                <div class="ranking-block">
-                    <h2>🏆 Diário</h2>
-                    <table id="daily-ranking" class="ranking-table">
-                        <thead>
-                            <tr><th>#</th><th>Usuário</th><th>Pontos</th></tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-                <div class="ranking-block">
-                    <h2>🌍 Global</h2>
-                    <table id="global-ranking" class="ranking-table">
-                        <thead>
-                            <tr><th>#</th><th>Usuário</th><th>Pontos</th></tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-    </main>
-    
-    <script type="module" src="script.js"></script>
+            <div id="ranking-section" class="ranking-flex hidden">
+                <div class="ranking-block">
+                    <h2>🏆 Diário</h2>
+                    <table id="daily-ranking" class="ranking-table">
+                        <thead>
+                            <tr><th>#</th><th>Usuário</th><th>Pontos</th></tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="ranking-block">
+                    <h2>🌍 Global</h2>
+                    <table id="global-ranking" class="ranking-table">
+                        <thead>
+                            <tr><th>#</th><th>Usuário</th><th>Pontos</th></tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <script type="module" src="script.js"></script>
 </body>
 </html>
