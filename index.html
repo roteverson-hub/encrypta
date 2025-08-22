@@ -158,6 +158,7 @@
             showSection("game-section", true);
             document.getElementById("welcome").textContent = `👋 Bem-vindo, ${user}!`;
             document.getElementById("logout").style.display = "block";
+            clearDailyBlockUI(); // garante que o aviso não apareça até a checagem no ranking
             loadRanking();
         }
 
@@ -217,11 +218,16 @@
 
                     showGameUI(username);
                     
+                    // --- CORREÇÃO: checar na coleção 'ranking' se já existe registro para hoje ---
                     const today = new Date().toISOString().split('T')[0];
-                    const gameRef = doc(db, "games", `${user.uid}-${today}`);
-                    const gameSnap = await getDoc(gameRef);
+                    const playedQuery = query(
+                        collection(db, "ranking"),
+                        where("userId", "==", user.uid),
+                        where("challengeDate", "==", today)
+                    );
+                    const playedSnap = await getDocs(playedQuery);
 
-                    if (gameSnap.exists()) {
+                    if (!playedSnap.empty) {
                         showDailyBlockForUser();
                     } else {
                         document.getElementById("loadChallenge").style.display = "block";
@@ -387,7 +393,20 @@
         
             showLoading();
             try {
+                // Segurança extra: checar novamente se já jogou hoje
                 const today = new Date().toISOString().split('T')[0];
+                const playedQuery = query(
+                    collection(db, "ranking"),
+                    where("userId", "==", user.uid),
+                    where("challengeDate", "==", today)
+                );
+                const playedSnap = await getDocs(playedQuery);
+                if (!playedSnap.empty) {
+                    showDailyBlockForUser();
+                    hideLoading();
+                    return;
+                }
+
                 const challengeRef = doc(db, "desafios", today);
                 const challengeSnap = await getDoc(challengeRef);
         
@@ -512,6 +531,15 @@
                 const points = calculatePoints(answerTime, attempts);
 
                 try {
+                    // CORREÇÃO: garantir 1 registro por usuário por dia na coleção 'ranking'
+                    const today = new Date().toISOString().split('T')[0];
+                    const alreadyQuery = query(
+                        collection(db, "ranking"),
+                        where("userId", "==", user.uid),
+                        where("challengeDate", "==", today)
+                    );
+                    const alreadySnap = await getDocs(alreadyQuery);
+
                     const userDocRef = doc(db, "users", user.uid);
                     const userSnap = await getDoc(userDocRef);
                     let username = user.email.split('@')[0];
@@ -520,18 +548,23 @@
                         username = userSnap.data().username || username;
                         totalPoints = userSnap.data().totalPoints || 0;
                     }
-                    
-                    await addDoc(collection(db, "ranking"), {
-                        userId: user.uid,
-                        username: username,
-                        answerTime: answerTime,
-                        challengeDate: new Date().toISOString().split('T')[0],
-                        attempts: attempts,
-                        points: points,
-                        timestamp: new Date()
-                    });
 
-                    await setDoc(userDocRef, { totalPoints: totalPoints + points, lastPlayed: new Date().toISOString().split('T')[0] }, { merge: true });
+                    if (alreadySnap.empty) {
+                        await addDoc(collection(db, "ranking"), {
+                            userId: user.uid,
+                            username: username,
+                            answerTime: answerTime,
+                            challengeDate: today,
+                            attempts: attempts,
+                            points: points,
+                            timestamp: new Date()
+                        });
+                        await setDoc(
+                            userDocRef,
+                            { totalPoints: totalPoints + points, lastPlayed: today },
+                            { merge: true }
+                        );
+                    }
 
                     showWinMessage();
                     loadRanking();
