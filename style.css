@@ -442,3 +442,10 @@ a:hover {
         font-size: 1.2rem;
     }
 }
+
+/* ==================== */
+/* Utilitários extras   */
+/* ==================== */
+.hidden {
+    display: none !important;
+}
