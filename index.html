@@ -145,9 +145,6 @@
             addDoc 
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // ==========================================================
-        // CONFIGURAÇÃO DO PROJETO FIREBASE (COM SUAS CREDENCIAIS)
-        // ==========================================================
         const firebaseConfig = {
             apiKey: "AIzaSyC8UGRrAwvAQ_PEy7STJwQWUSnE2-qWuII",
             authDomain: "encryptame-1.firebaseapp.com",
@@ -157,14 +154,10 @@
             appId: "1:109950408456:web:65492d295240c5f106603a"
         };
         
-        // Inicializa o Firebase e seus serviços
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // ==========================================================
-        // VARIÁVEIS E FUNÇÕES GERAIS
-        // ==========================================================
         let originalWords = [];
         let startTime = null;
         let attempts = 0;
@@ -172,38 +165,26 @@
         let hintMapping = {};
 
         const loadingOverlay = document.getElementById("loading-overlay");
-        function showLoading() {
-            loadingOverlay.classList.add("is-visible");
-        }
-        function hideLoading() {
-            loadingOverlay.classList.remove("is-visible");
-        }
+        function showLoading() { loadingOverlay.classList.add("is-visible"); }
+        function hideLoading() { loadingOverlay.classList.remove("is-visible"); }
 
-        // Função para mostrar ou esconder seções
         function showSection(id) {
-            document.querySelectorAll('.content-section').forEach(section => {
-                section.classList.remove('is-visible');
-            });
+            document.querySelectorAll('.content-section').forEach(section => section.classList.remove('is-visible'));
             const el = document.getElementById(id);
-            if (el) {
-                el.classList.add('is-visible');
-            }
+            if (el) el.classList.add('is-visible');
         }
 
-        // Funções de UI
         function showGameUI(user) {
             showSection("game-section");
             document.getElementById("welcome").textContent = `👋 Bem-vindo, ${user}!`;
             document.getElementById("logout").style.display = "block";
-            clearDailyBlockUI(); // garante que o aviso não apareça até a checagem no ranking
+            clearDailyBlockUI();
             loadRanking();
         }
 
         function showDailyBlockForUser() {
             const el = document.getElementById("alreadyPlayedMsg");
-            if (el) {
-                el.style.display = "block";
-            }
+            if (el) el.style.display = "block";
             document.getElementById("instructions").style.display = "none";
             document.getElementById("loadChallenge").style.display = "none";
             document.getElementById("submitAnswers").style.display = "none";
@@ -215,9 +196,7 @@
 
         function showWinMessage() {
             const el = document.getElementById("alreadyPlayedMsg");
-            if (el) {
-                el.style.display = "block";
-            }
+            if (el) el.style.display = "block";
             const resultMsg = document.getElementById("result");
             resultMsg.classList.add("win");
             resultMsg.textContent = "Parabéns, você completou o desafio de hoje. Volte amanhã para solucionar mais um.";
@@ -228,9 +207,7 @@
 
         function clearDailyBlockUI() {
             const el = document.getElementById("alreadyPlayedMsg");
-            if (el) {
-                el.style.display = "none";
-            }
+            if (el) el.style.display = "none";
             const resultMsg = document.getElementById("result");
             resultMsg.classList.remove("daily-block");
             resultMsg.classList.remove("win");
@@ -239,26 +216,18 @@
             document.getElementById("hintDisplay").textContent = "";
         }
         
-        // ==========================================================
-        // LÓGICA DE AUTENTICAÇÃO E FIRESTORE
-        // ==========================================================
-
-        // Listener global para o estado de autenticação
         onAuthStateChanged(auth, async (user) => {
             hideLoading();
             if (user) {
                 try {
                     const docRef = doc(db, "users", user.uid);
                     const docSnap = await getDoc(docRef);
-                    let username = 'Usuário'; // Valor padrão
-
+                    let username = 'Usuário';
                     if (docSnap.exists() && docSnap.data().username) {
                         username = docSnap.data().username;
                     }
-
                     showGameUI(username);
                     
-                    // --- CORREÇÃO: checar na coleção 'ranking' se já existe registro para hoje ---
                     const today = new Date().toISOString().split('T')[0];
                     const playedQuery = query(
                         collection(db, "ranking"),
@@ -266,12 +235,8 @@
                         where("challengeDate", "==", today)
                     );
                     const playedSnap = await getDocs(playedQuery);
-
-                    if (!playedSnap.empty) {
-                        showDailyBlockForUser();
-                    } else {
-                        document.getElementById("loadChallenge").style.display = "block";
-                    }
+                    if (!playedSnap.empty) showDailyBlockForUser();
+                    else document.getElementById("loadChallenge").style.display = "block";
 
                 } catch (error) {
                     console.error("Erro ao carregar dados do usuário:", error);
@@ -280,57 +245,28 @@
                     errorMessageDiv.style.color = 'red';
                     document.getElementById('appContainer').appendChild(errorMessageDiv);
                 }
-
             } else {
                 showSection("login-section");
             }
         });
 
-        // Lógica para alternar entre as telas de login e registro
-        document.getElementById("goRegister").addEventListener("click", (e) => {
-            e.preventDefault();
-            showSection("register-section");
-        });
+        document.getElementById("goRegister").addEventListener("click", (e) => { e.preventDefault(); showSection("register-section"); });
+        document.getElementById("goLogin").addEventListener("click", (e) => { e.preventDefault(); showSection("login-section"); });
+        document.getElementById("goForgotPassword").addEventListener("click", (e) => { e.preventDefault(); showSection("forgot-password-section"); });
+        document.getElementById("goLoginFromForgotPassword").addEventListener("click", (e) => { e.preventDefault(); showSection("login-section"); });
 
-        document.getElementById("goLogin").addEventListener("click", (e) => {
-            e.preventDefault();
-            showSection("login-section");
-        });
-
-        // Lógica para alternar para a tela de recuperar senha
-        document.getElementById("goForgotPassword").addEventListener("click", (e) => {
-            e.preventDefault();
-            showSection("forgot-password-section");
-        });
-
-        document.getElementById("goLoginFromForgotPassword").addEventListener("click", (e) => {
-            e.preventDefault();
-            showSection("login-section");
-        });
-
-        // Lógica do botão de registro
         document.getElementById("btnRegister").addEventListener("click", async (e) => {
             e.preventDefault();
             const email = document.getElementById("register-email").value.trim();
             const username = document.getElementById("register-username").value.trim();
             const password = document.getElementById("register-password").value;
             const registerMsg = document.getElementById("registerMsg");
-            
-            if (!email || !username || !password) {
-                registerMsg.textContent = "E-mail, nome de usuário e senha são obrigatórios.";
-                return;
-            }
-            
+            if (!email || !username || !password) { registerMsg.textContent = "E-mail, nome de usuário e senha são obrigatórios."; return; }
             showLoading();
             try {
-                // Checar se o username já existe
                 const usernameQuery = query(collection(db, "users"), where("username", "==", username));
                 const usernameSnap = await getDocs(usernameQuery);
-                if (!usernameSnap.empty) {
-                    registerMsg.textContent = "Nome de usuário já existe. Escolha outro.";
-                    hideLoading();
-                    return;
-                }
+                if (!usernameSnap.empty) { registerMsg.textContent = "Nome de usuário já existe. Escolha outro."; hideLoading(); return; }
 
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const user = userCredential.user;
@@ -338,8 +274,7 @@
                 await setDoc(doc(db, "users", user.uid), {
                     username: username,
                     email: user.email,
-                    createdAt: new Date(),
-                    totalPoints: 0
+                    createdAt: new Date()
                 });
 
                 registerMsg.textContent = "Registro e login realizados com sucesso!";
@@ -347,71 +282,42 @@
             } catch (error) {
                 console.error("Erro de registro:", error);
                 let errorMessage = "Erro ao registrar. Tente novamente.";
-                if (error.code === 'auth/email-already-in-use') {
-                    errorMessage = 'Este e-mail já está em uso.';
-                } else if (error.code === 'auth/weak-password') {
-                    errorMessage = 'A senha deve ter pelo menos 6 caracteres.';
-                }
+                if (error.code === 'auth/email-already-in-use') errorMessage = 'Este e-mail já está em uso.';
+                else if (error.code === 'auth/weak-password') errorMessage = 'A senha deve ter pelo menos 6 caracteres.';
                 registerMsg.textContent = errorMessage;
-            } finally {
-                hideLoading();
-            }
+            } finally { hideLoading(); }
         });
 
-        // Lógica do botão de login
         document.getElementById("btnLogin").addEventListener("click", async (e) => {
             e.preventDefault();
             const username = document.getElementById("login-username").value.trim();
             const password = document.getElementById("login-password").value;
             const loginMsg = document.getElementById("loginMsg");
-            
-            if (!username || !password) {
-                loginMsg.textContent = "Nome de usuário e senha obrigatórios.";
-                return;
-            }
-
+            if (!username || !password) { loginMsg.textContent = "Nome de usuário e senha obrigatórios."; return; }
             showLoading();
             try {
-                // Encontrar o e-mail do usuário pelo username no Firestore
                 const userQuery = query(collection(db, "users"), where("username", "==", username));
                 const userSnapshot = await getDocs(userQuery);
-
-                if (userSnapshot.empty) {
-                    loginMsg.textContent = "Nome de usuário ou senha inválidos.";
-                    hideLoading();
-                    return;
-                }
+                if (userSnapshot.empty) { loginMsg.textContent = "Nome de usuário ou senha inválidos."; hideLoading(); return; }
 
                 const userData = userSnapshot.docs[0].data();
                 const email = userData.email;
-
-                // Fazer o login com o e-mail e a senha no Firebase Auth
                 await signInWithEmailAndPassword(auth, email, password);
                 loginMsg.textContent = "Login realizado com sucesso!";
 
             } catch (error) {
                 console.error("Erro de login:", error);
                 let errorMessage = "Nome de usuário ou senha inválidos.";
-                if (error.code === 'auth/wrong-password') {
-                    errorMessage = 'Senha incorreta.';
-                }
+                if (error.code === 'auth/wrong-password') errorMessage = 'Senha incorreta.';
                 loginMsg.textContent = errorMessage;
-            } finally {
-                hideLoading();
-            }
+            } finally { hideLoading(); }
         });
 
-        // Lógica do botão de recuperação de senha
         document.getElementById("btnForgotPassword").addEventListener("click", async (e) => {
             e.preventDefault();
             const email = document.getElementById("forgot-password-email").value.trim();
             const forgotPasswordMsg = document.getElementById("forgotPasswordMsg");
-
-            if (!email) {
-                forgotPasswordMsg.textContent = "Por favor, digite seu e-mail.";
-                return;
-            }
-
+            if (!email) { forgotPasswordMsg.textContent = "Por favor, digite seu e-mail."; return; }
             showLoading();
             try {
                 await sendPasswordResetEmail(auth, email);
@@ -420,42 +326,21 @@
             } catch (error) {
                 console.error("Erro ao enviar link de recuperação:", error);
                 let errorMessage = "Erro ao enviar o link. Verifique o e-mail e tente novamente.";
-                if (error.code === 'auth/user-not-found') {
-                    errorMessage = 'Nenhuma conta encontrada com este e-mail.';
-                }
+                if (error.code === 'auth/user-not-found') errorMessage = 'Nenhuma conta encontrada com este e-mail.';
                 forgotPasswordMsg.textContent = errorMessage;
                 forgotPasswordMsg.style.color = "red";
-            } finally {
-                hideLoading();
-            }
+            } finally { hideLoading(); }
         });
 
-        // Lógica do botão de logout
         document.getElementById("logout").addEventListener("click", async () => {
             showLoading();
-            try {
-                await signOut(auth);
-            } catch (error) {
-                console.error("Erro ao sair:", error);
-                const errorMessageDiv = document.createElement('div');
-                errorMessageDiv.textContent = 'Erro ao tentar sair.';
-                errorMessageDiv.style.color = 'red';
-                document.getElementById('appContainer').appendChild(errorMessageDiv);
-            } finally {
-                hideLoading();
-            }
+            try { await signOut(auth); }
+            catch (error) { console.error("Erro ao sair:", error); }
+            finally { hideLoading(); }
         });
-        
-        // ==========================================================
-        // LÓGICA DO JOGO E RANKING
-        // ==========================================================
-        
-        // Funções utilitárias
-        function normalizeString(str) {
-            if (!str) return "";
-            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        }
 
+        // ==================== JOGO ====================
+        function normalizeString(str) { if (!str) return ""; return str.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
         function encryptWord(word, cipher) {
             if (!word || !cipher) return "";
             const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -465,94 +350,60 @@
                 const char = normalizedWord[i];
                 if (char >= 'A' && char <= 'Z') {
                     const index = alphabet.indexOf(char);
-                    if (index !== -1) {
-                        encrypted += cipher[index];
-                    } else {
-                        encrypted += char;
-                    }
-                } else {
-                    encrypted += char;
-                }
+                    if (index !== -1) encrypted += cipher[index];
+                    else encrypted += char;
+                } else encrypted += char;
             }
             return encrypted;
         }
-
-        // Função para calcular a pontuação
         function calculatePoints(answerTime, attempts, hintUsed) {
             const basePoints = 1000;
             const timePenalty = answerTime * 5;
             const attemptsPenalty = (attempts - 1) * 50;
             const hintPenalty = hintUsed ? 200 : 0;
             let points = basePoints - timePenalty - attemptsPenalty - hintPenalty;
-            return Math.max(100, points); // Garante que a pontuação mínima seja 100
+            return Math.max(100, points);
         }
-        
-        // Função para aplicar a dica
         function applyHint(hintMapping) {
-            // Itera sobre o mapeamento de letras da dica
             for (const originalChar in hintMapping) {
                 const encryptedChar = hintMapping[originalChar];
-
-                // Encontra todos os inputs correspondentes à letra criptografada
                 const inputsToFill = document.querySelectorAll(`[data-encrypted-char="${encryptedChar}"]`);
-
                 inputsToFill.forEach(input => {
                     input.value = originalChar;
-                    input.disabled = true; // Desabilita o campo para que o usuário não mude
-                    input.classList.add('bg-gray-300'); // Adiciona um estilo para indicar que foi preenchido
+                    input.disabled = true;
+                    input.classList.add('bg-gray-300');
                 });
             }
         }
 
-        // Carregar Desafio
         document.getElementById("loadChallenge").addEventListener("click", async () => {
             const user = auth.currentUser;
             if (!user) return;
-        
             showLoading();
             try {
-                // Segurança extra: checar novamente se já jogou hoje
                 const today = new Date().toISOString().split('T')[0];
-                const playedQuery = query(
-                    collection(db, "ranking"),
-                    where("userId", "==", user.uid),
-                    where("challengeDate", "==", today)
-                );
+                const playedQuery = query(collection(db, "ranking"), where("userId", "==", user.uid), where("challengeDate", "==", today));
                 const playedSnap = await getDocs(playedQuery);
-                if (!playedSnap.empty) {
-                    showDailyBlockForUser();
-                    hideLoading();
-                    return;
-                }
+                if (!playedSnap.empty) { showDailyBlockForUser(); hideLoading(); return; }
 
                 const challengeRef = doc(db, "desafios", today);
                 const challengeSnap = await getDoc(challengeRef);
-        
                 if (challengeSnap.exists()) {
                     const challengeData = challengeSnap.data();
-                    const words = [
-                        challengeData.short_word,
-                        challengeData.medium_word,
-                        challengeData.long_word
-                    ];
+                    const words = [challengeData.short_word, challengeData.medium_word, challengeData.long_word];
                     const cipher = challengeData.cipher_alpha;
-                    
                     const cipheredWords = words.map(word => encryptWord(word, cipher));
                     originalWords = words;
-        
                     document.getElementById("theme").textContent = `Tema: ${challengeData.theme || "Sem tema"}`;
                     const challengeDiv = document.getElementById("challenge");
                     challengeDiv.innerHTML = "";
                     cipheredWords.forEach((word, wordIndex) => {
                         const wordDiv = document.createElement("div");
                         wordDiv.className = "challenge-word";
-                        
                         const encryptedDisplay = word.split('').join(' ');
                         wordDiv.innerHTML = `<p class="encrypted-text">${encryptedDisplay}</p>`;
-        
                         const inputContainer = document.createElement("div");
                         inputContainer.className = "input-container";
-                        
                         for (let i = 0; i < word.length; i++) {
                             const input = document.createElement("input");
                             input.type = "text";
@@ -578,28 +429,17 @@
                         wordDiv.appendChild(inputContainer);
                         challengeDiv.appendChild(wordDiv);
                     });
-        
-                    // Lógica para a Dica
+
                     hintUsed = false;
                     hintMapping = {};
-                    const longWord = words[2]; // A terceira palavra (a mais longa)
+                    const longWord = words[2];
                     if (longWord && longWord.length >= 2) {
                         const originalChars = normalizeString(longWord).toUpperCase().split('');
                         const encryptedChars = encryptWord(longWord, challengeData.cipher_alpha).split('');
-
                         const availableIndices = Array.from({ length: originalChars.length }, (_, i) => i);
-                        
-                        // Seleciona 2 pares de letras aleatórios
                         const randomIndices = [];
-                        while (randomIndices.length < 2 && availableIndices.length > 0) {
-                            const randomIndex = Math.floor(Math.random() * availableIndices.length);
-                            randomIndices.push(availableIndices.splice(randomIndex, 1)[0]);
-                        }
-                        
-                        // Cria o mapeamento para a dica
-                        randomIndices.forEach(index => {
-                            hintMapping[originalChars[index]] = encryptedChars[index];
-                        });
+                        while (randomIndices.length < 2 && availableIndices.length > 0) randomIndices.push(availableIndices.splice(Math.floor(Math.random() * availableIndices.length), 1)[0]);
+                        randomIndices.forEach(index => { hintMapping[originalChars[index]] = encryptedChars[index]; });
                     }
 
                     document.getElementById("instructions").style.display = "none";
@@ -611,180 +451,125 @@
                     document.getElementById("result").textContent = "";
                     startTime = Date.now();
                     attempts = 0;
-        
-                } else {
-                    document.getElementById("theme").textContent = "Nenhum desafio encontrado para hoje.";
-                    document.getElementById("loadChallenge").style.display = "none";
-                }
-        
-            } catch (err) {
-                console.error("Erro ao carregar desafio:", err);
-                const errorMessageDiv = document.createElement('div');
-                errorMessageDiv.textContent = 'Erro ao carregar desafio do dia.';
-                errorMessageDiv.style.color = 'red';
-                document.getElementById('appContainer').appendChild(errorMessageDiv);
-            } finally {
-                hideLoading();
-            }
+
+                } else document.getElementById("theme").textContent = "Nenhum desafio encontrado para hoje.";
+
+            } catch (err) { console.error("Erro ao carregar desafio:", err); }
+            finally { hideLoading(); }
         });
 
-        // Lógica do botão de dica
         document.getElementById("showHintBtn").addEventListener("click", () => {
-            if (hintUsed) {
-                alert("Você já usou a dica para este desafio.");
-                return;
-            }
-
+            if (hintUsed) { alert("Você já usou a dica para este desafio."); return; }
             hintUsed = true;
             document.getElementById("showHintBtn").disabled = true;
             document.getElementById("showHintBtn").textContent = "Dica Usada";
             document.getElementById("showHintBtn").classList.add('bg-gray-300');
-            
             let hintText = "Dica: ";
-            for (const original in hintMapping) {
-                hintText += `${original} → ${hintMapping[original]}; `;
-            }
-
+            for (const original in hintMapping) hintText += `${original} → ${hintMapping[original]}; `;
             document.getElementById("hintDisplay").textContent = hintText;
-
             applyHint(hintMapping);
         });
-        
-        // Verificar Respostas + Enviar Ranking
+
         document.getElementById("submitAnswers").addEventListener("click", async () => {
             const user = auth.currentUser;
             if (!user) return;
-
             showLoading();
-            
             attempts++;
-            
             let correctCount = 0;
             originalWords.forEach((answer, wordIndex) => {
                 const inputs = document.querySelectorAll(`[data-word-index="${wordIndex}"]`);
                 let guessedWord = "";
                 inputs.forEach(input => guessedWord += input.value);
-                
                 const normalizedGuessedWord = normalizeString(guessedWord).toUpperCase();
                 const normalizedAnswer = normalizeString(String(answer || "")).toUpperCase();
-                const isWordCorrect = normalizedGuessedWord === normalizedAnswer;
-                
-                if (isWordCorrect) {
-                    correctCount++;
-                }
-        
+                if (normalizedGuessedWord === normalizedAnswer) correctCount++;
                 inputs.forEach(input => {
                     if (!input.disabled) {
                         input.classList.remove('bg-green-200', 'bg-red-200');
-                        if (isWordCorrect) {
-                            input.classList.add('bg-green-200');
-                        } else {
-                            input.classList.add('bg-red-200');
-                        }
+                        if (normalizedGuessedWord === normalizedAnswer) input.classList.add('bg-green-200');
+                        else input.classList.add('bg-red-200');
                     }
                 });
             });
-            
+
             const resultMsg = document.getElementById("result");
             const isCorrect = (correctCount === originalWords.length);
-            
+
             if (isCorrect) {
                 resultMsg.textContent = "🎉 Parabéns! Você acertou todas!";
                 resultMsg.style.color = "#10b981";
-                
                 const answerTime = Math.floor((Date.now() - startTime) / 1000);
                 const points = calculatePoints(answerTime, attempts, hintUsed);
 
                 try {
-                    // CORREÇÃO: garantir 1 registro por usuário por dia na coleção 'ranking'
                     const today = new Date().toISOString().split('T')[0];
-                    const alreadyQuery = query(
-                        collection(db, "ranking"),
-                        where("userId", "==", user.uid),
-                        where("challengeDate", "==", today)
-                    );
+                    const alreadyQuery = query(collection(db, "ranking"), where("userId", "==", user.uid), where("challengeDate", "==", today));
                     const alreadySnap = await getDocs(alreadyQuery);
 
                     const userDocRef = doc(db, "users", user.uid);
                     const userSnap = await getDoc(userDocRef);
                     let username = 'Usuário';
-                    let totalPoints = 0;
-                    if (userSnap.exists()) {
-                        username = userSnap.data().username || username;
-                        totalPoints = userSnap.data().totalPoints || 0;
-                    }
+                    if (userSnap.exists()) username = userSnap.data().username || username;
 
-                    if (alreadySnap.empty) {
-                        await addDoc(collection(db, "ranking"), {
-                            userId: user.uid,
-                            username: username,
-                            answerTime: answerTime,
-                            challengeDate: today,
-                            attempts: attempts,
-                            points: points,
-                            hintUsed: hintUsed,
-                            timestamp: new Date()
-                        });
-                        await setDoc(
-                            userDocRef,
-                            { totalPoints: totalPoints + points, lastPlayed: today },
-                            { merge: true }
-                        );
-                    }
+                    if (alreadySnap.empty) await addDoc(collection(db, "ranking"), {
+                        userId: user.uid,
+                        username: username,
+                        answerTime: answerTime,
+                        challengeDate: today,
+                        attempts: attempts,
+                        points: points,
+                        hintUsed: hintUsed,
+                        timestamp: new Date()
+                    });
 
                     showWinMessage();
                     loadRanking();
-        
+
                 } catch (err) {
                     console.error("Erro ao salvar resultado no Firestore:", err);
                     resultMsg.textContent = "Erro ao salvar seu resultado. Tente novamente.";
                 }
+
             } else {
                 resultMsg.textContent = `Você acertou ${correctCount} de ${originalWords.length}. Tente novamente.`;
                 resultMsg.style.color = "#FFB300";
             }
-            
             hideLoading();
         });
-        
-        // Carregar Ranking
+
         async function loadRanking() {
             showLoading();
             try {
-                // Ranking Diário
                 const today = new Date().toISOString().split('T')[0];
                 const dailyGamesQuery = query(collection(db, "ranking"), where("challengeDate", "==", today), orderBy("points", "desc"));
                 const dailySnapshot = await getDocs(dailyGamesQuery);
                 const dailyData = dailySnapshot.docs.map(doc => doc.data());
-                
                 const dailyBody = document.querySelector("#daily-ranking tbody");
                 dailyBody.innerHTML = "";
                 dailyData.forEach((row, idx) => {
-                    dailyBody.innerHTML += `<tr>
-                        <td>${idx + 1}</td><td>${row.username}</td><td>${row.points}</td>
-                    </tr>`;
+                    dailyBody.innerHTML += `<tr><td>${idx + 1}</td><td>${row.username}</td><td>${row.points}</td></tr>`;
                 });
-        
-                // Ranking Global
-                const overallUsersQuery = query(collection(db, "users"), orderBy("totalPoints", "desc"), limit(10));
-                const overallSnapshot = await getDocs(overallUsersQuery);
-                const overallData = overallSnapshot.docs.map(doc => doc.data());
-        
+
+                // Ranking Global: soma pontos diretamente da coleção 'ranking'
+                const rankingSnap = await getDocs(collection(db, "ranking"));
+                const pointsMap = {};
+                rankingSnap.docs.forEach(doc => {
+                    const data = doc.data();
+                    if (!pointsMap[data.userId]) pointsMap[data.userId] = { username: data.username, points: 0 };
+                    pointsMap[data.userId].points += data.points;
+                });
+                const globalData = Object.values(pointsMap).sort((a,b) => b.points - a.points).slice(0, 10);
                 const globalBody = document.querySelector("#global-ranking tbody");
                 globalBody.innerHTML = "";
-                overallData.forEach((row, idx) => {
-                    globalBody.innerHTML += `<tr>
-                        <td>${idx + 1}</td><td>${row.username}</td><td>${row.totalPoints}</td>
-                    </tr>`;
+                globalData.forEach((row, idx) => {
+                    globalBody.innerHTML += `<tr><td>${idx + 1}</td><td>${row.username}</td><td>${row.points}</td></tr>`;
                 });
-                
+
                 document.getElementById("ranking-section").classList.remove("hidden");
-        
+
             } catch (err) {
                 console.error("Erro ao carregar ranking:", err);
-            } finally {
-                hideLoading();
-            }
+            } finally { hideLoading(); }
         }
     </script>
 </body>
