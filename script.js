@@ -237,14 +237,17 @@ function encryptWord(word, cipher) {
     }
     return encrypted;
 }
+
+// NOVO CÁLCULO DE PONTOS
 function calculatePoints(answerTime, attempts, hintUsed) {
     const basePoints = 1000;
     const timePenalty = answerTime * 5;
     const attemptsPenalty = (attempts - 1) * 50;
-    const hintPenalty = hintUsed ? 200 : 0;
+    const hintPenalty = hintUsed ? 100 : 0;
     let points = basePoints - timePenalty - attemptsPenalty - hintPenalty;
-    return Math.max(100, points);
+    return Math.max(50, Math.min(1000, points));
 }
+
 function applyHint(hintMapping) {
     for (const originalChar in hintMapping) {
         const encryptedChar = hintMapping[originalChar];
