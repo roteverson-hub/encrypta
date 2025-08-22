@@ -8,7 +8,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- Adicionando o Tailwind CSS para o estilo padrão de botões e inputs -->
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -314,7 +313,11 @@
 
                 } catch (error) {
                     console.error("Erro ao carregar dados do usuário:", error);
-                    alert("Ocorreu um erro ao carregar seus dados.");
+                    // Usando um modal/div customizado em vez de alert()
+                    const errorMessageDiv = document.createElement('div');
+                    errorMessageDiv.textContent = 'Ocorreu um erro ao carregar seus dados.';
+                    errorMessageDiv.style.color = 'red';
+                    document.getElementById('appContainer').appendChild(errorMessageDiv);
                 }
 
             } else {
@@ -420,25 +423,46 @@
                 // onAuthStateChanged irá redirecionar para a tela de login.
             } catch (error) {
                 console.error("Erro ao sair:", error);
-                alert("Erro ao tentar sair.");
+                // Usando um modal/div customizado em vez de alert()
+                const errorMessageDiv = document.createElement('div');
+                errorMessageDiv.textContent = 'Erro ao tentar sair.';
+                errorMessageDiv.style.color = 'red';
+                document.getElementById('appContainer').appendChild(errorMessageDiv);
             } finally {
                 hideLoading();
             }
         });
         
         // ==========================================================
-        // LÓGICA DO JOGO (mantida do seu código original)
+        // LÓGICA DO JOGO
         // ==========================================================
+        
+        // Funções utilitárias
         function normalizeString(str) {
             if (!str) return "";
             return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         }
-        
-        // Removi os `fetch` para endpoints de login/registro e usei a lógica do Firebase acima.
-        // A função checkLogin não é mais necessária pois usamos onAuthStateChanged.
-        // As demais lógicas de jogo (loadChallenge, submitAnswers, loadRanking)
-        // precisam ser adaptadas para usar o Firestore em vez de fetch para proxies.
-        // Isso será feito no próximo passo.
+
+        function encryptWord(word, cipher) {
+            if (!word || !cipher) return "";
+            const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            let encrypted = "";
+            const normalizedWord = normalizeString(word).toUpperCase();
+            for (let i = 0; i < normalizedWord.length; i++) {
+                const char = normalizedWord[i];
+                if (char >= 'A' && char <= 'Z') {
+                    const index = alphabet.indexOf(char);
+                    if (index !== -1) {
+                        encrypted += cipher[index];
+                    } else {
+                        encrypted += char; // Mantém caracteres que não são letras
+                    }
+                } else {
+                    encrypted += char;
+                }
+            }
+            return encrypted;
+        }
 
         // Carregar Desafio
         document.getElementById("loadChallenge").addEventListener("click", async () => {
@@ -447,63 +471,85 @@
         
             showLoading();
             try {
-                // Simulação de chamada para um desafio
-                // Em um cenário real, você buscaria isso de uma coleção 'challenges'
-                const challengeData = {
-                    theme: "Capitais da Europa",
-                    words: ["L-S-B-A", "M-D-I-D", "P-R-I-S"],
-                    original: ["LISBOA", "MADRID", "PARIS"]
-                };
+                // Monta o nome do documento do dia no formato YYYY-MM-DD
+                const today = new Date().toISOString().split('T')[0];
+                const challengeRef = doc(db, "desafios", today);
+                const challengeSnap = await getDoc(challengeRef);
         
-                document.getElementById("theme").textContent = `Tema: ${challengeData.theme || ""}`;
-                originalWords = challengeData.original || [];
-                const challengeDiv = document.getElementById("challenge");
-                challengeDiv.innerHTML = "";
-                (challengeData.words || []).forEach((word, wordIndex) => {
-                    const wordDiv = document.createElement("div");
-                    wordDiv.classList.add("challenge-word", "flex", "flex-col", "items-center", "gap-2");
-                    wordDiv.innerHTML = `<p class="text-lg font-mono">${word.split('-').join(' ')}</p>`;
+                if (challengeSnap.exists()) {
+                    const challengeData = challengeSnap.data();
+                    const words = [
+                        challengeData.short_word,
+                        challengeData.medium_word,
+                        challengeData.long_word
+                    ];
+                    const cipher = challengeData.cipher_alpha;
+                    
+                    // Criptografa as palavras para exibir
+                    const cipheredWords = words.map(word => encryptWord(word, cipher));
+                    originalWords = words; // Salva as palavras originais para verificação posterior
         
-                    const inputContainer = document.createElement("div");
-                    inputContainer.classList.add("input-container", "flex", "gap-1");
-                            
-                    for (let i = 0; i < word.length/2; i++) {
-                        const input = document.createElement("input");
-                        input.type = "text";
-                        input.maxLength = "1";
-                        input.classList.add("letter-input", "w-8", "h-8", "text-center", "font-bold", "uppercase", "border-2", "border-gray-300", "rounded-md", "focus:outline-none", "focus:border-indigo-500", "transition-colors");
-                        input.setAttribute("data-word-index", wordIndex);
-                        input.setAttribute("data-letter-index", i);
-                        input.addEventListener("input", (e) => {
-                            if (e.target.value) {
-                                const nextInput = document.querySelector(`[data-word-index="${wordIndex}"][data-letter-index="${i + 1}"]`);
-                                if (nextInput) {
-                                    nextInput.focus();
+                    document.getElementById("theme").textContent = `Tema: ${challengeData.theme || "Sem tema"}`;
+                    const challengeDiv = document.getElementById("challenge");
+                    challengeDiv.innerHTML = "";
+                    cipheredWords.forEach((word, wordIndex) => {
+                        const wordDiv = document.createElement("div");
+                        wordDiv.classList.add("challenge-word", "flex", "flex-col", "items-center", "gap-2");
+                        
+                        const encryptedDisplay = word.split('').join(' ');
+                        wordDiv.innerHTML = `<p class="text-lg font-mono tracking-widest">${encryptedDisplay}</p>`;
+        
+                        const inputContainer = document.createElement("div");
+                        inputContainer.classList.add("input-container", "flex", "gap-1");
+                        
+                        for (let i = 0; i < word.length; i++) {
+                            const input = document.createElement("input");
+                            input.type = "text";
+                            input.maxLength = "1";
+                            input.classList.add("letter-input", "w-8", "h-8", "text-center", "font-bold", "uppercase", "border-2", "border-gray-300", "rounded-md", "focus:outline-none", "focus:border-indigo-500", "transition-colors");
+                            input.setAttribute("data-word-index", wordIndex);
+                            input.setAttribute("data-letter-index", i);
+                            input.addEventListener("input", (e) => {
+                                if (e.target.value) {
+                                    const nextInput = document.querySelector(`[data-word-index="${wordIndex}"][data-letter-index="${i + 1}"]`);
+                                    if (nextInput) {
+                                        nextInput.focus();
+                                    }
                                 }
-                            }
-                        });
-                        input.addEventListener("keydown", (e) => {
-                            if (e.key === "Backspace" && !e.target.value) {
-                                const prevInput = document.querySelector(`[data-word-index="${wordIndex}"][data-letter-index="${i - 1}"]`);
-                                if (prevInput) {
-                                    prevInput.focus();
+                            });
+                            input.addEventListener("keydown", (e) => {
+                                if (e.key === "Backspace" && !e.target.value) {
+                                    const prevInput = document.querySelector(`[data-word-index="${wordIndex}"][data-letter-index="${i - 1}"]`);
+                                    if (prevInput) {
+                                        prevInput.focus();
+                                    }
                                 }
-                            }
-                        });
-                        inputContainer.appendChild(input);
-                    }
-                    wordDiv.appendChild(inputContainer);
-                    challengeDiv.appendChild(wordDiv);
-                });
-                document.getElementById("instructions").style.display = "none";
-                document.getElementById("loadChallenge").style.display = "none";
-                document.getElementById("submitAnswers").style.display = "block";
-                clearDailyBlockUI();
-                document.getElementById("result").textContent = "";
-                startTime = Date.now();
+                            });
+                            inputContainer.appendChild(input);
+                        }
+                        wordDiv.appendChild(inputContainer);
+                        challengeDiv.appendChild(wordDiv);
+                    });
+        
+                    document.getElementById("instructions").style.display = "none";
+                    document.getElementById("loadChallenge").style.display = "none";
+                    document.getElementById("submitAnswers").style.display = "block";
+                    clearDailyBlockUI();
+                    document.getElementById("result").textContent = "";
+                    startTime = Date.now();
+        
+                } else {
+                    document.getElementById("theme").textContent = "Nenhum desafio encontrado para hoje.";
+                    document.getElementById("loadChallenge").style.display = "none";
+                }
+        
             } catch (err) {
                 console.error("Erro ao carregar desafio:", err);
-                alert("Erro ao carregar desafio do dia.");
+                // Usando um modal/div customizado em vez de alert()
+                const errorMessageDiv = document.createElement('div');
+                errorMessageDiv.textContent = 'Erro ao carregar desafio do dia.';
+                errorMessageDiv.style.color = 'red';
+                document.getElementById('appContainer').appendChild(errorMessageDiv);
             } finally {
                 hideLoading();
             }
@@ -520,11 +566,11 @@
                 const inputs = document.querySelectorAll(`[data-word-index="${wordIndex}"]`);
                 let guessedWord = "";
                 inputs.forEach(input => guessedWord += input.value);
-                            
+                
                 const normalizedGuessedWord = normalizeString(guessedWord).toUpperCase();
                 const normalizedAnswer = normalizeString(String(answer || "")).toUpperCase();
                 const isWordCorrect = normalizedGuessedWord === normalizedAnswer;
-                            
+                
                 if (isWordCorrect) {
                     correctCount++;
                 }
