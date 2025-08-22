@@ -255,7 +255,8 @@ function applyHint(hintMapping) {
         inputsToFill.forEach(input => {
             input.value = originalChar;
             input.disabled = true;
-            input.classList.add('bg-gray-300');
+            // Correção aqui: Removido 'bg-gray-300' para usar a classe CSS `correct` do seu `style.css`
+            input.classList.add('correct');
         });
     }
 }
@@ -347,7 +348,8 @@ document.getElementById("showHintBtn").addEventListener("click", () => {
     hintUsed = true;
     document.getElementById("showHintBtn").disabled = true;
     document.getElementById("showHintBtn").textContent = "Dica Usada";
-    document.getElementById("showHintBtn").classList.add('bg-gray-300');
+    // Correção aqui: Removido 'bg-gray-300' para manter o estilo do botão consistente
+    document.getElementById("showHintBtn").classList.add('disabled-btn-style');
     let hintText = "Dica: ";
     for (const original in hintMapping) hintText += `${original} → ${hintMapping[original]}; `;
     document.getElementById("hintDisplay").textContent = hintText;
@@ -369,9 +371,13 @@ document.getElementById("submitAnswers").addEventListener("click", async () => {
         if (normalizedGuessedWord === normalizedAnswer) correctCount++;
         inputs.forEach(input => {
             if (!input.disabled) {
-                input.classList.remove('bg-green-200', 'bg-red-200');
-                if (normalizedGuessedWord === normalizedAnswer) input.classList.add('bg-green-200');
-                else input.classList.add('bg-red-200');
+                // CORREÇÃO AQUI: Substituindo as classes do Tailwind por suas classes CSS
+                input.classList.remove('correct', 'incorrect');
+                if (normalizedGuessedWord === normalizedAnswer) {
+                    input.classList.add('correct');
+                } else {
+                    input.classList.add('incorrect');
+                }
             }
         });
     });
