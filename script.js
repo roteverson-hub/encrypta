@@ -255,8 +255,8 @@ function applyHint(hintMapping) {
         inputsToFill.forEach(input => {
             input.value = originalChar;
             input.disabled = true;
-            // Correção aqui: Removido 'bg-gray-300' para usar a classe CSS `correct` do seu `style.css`
-            input.classList.add('correct');
+            // CORREÇÃO AQUI: Adicionando a classe 'hint' em vez de 'correct'
+            input.classList.add('hint');
         });
     }
 }
